@@ -6,9 +6,17 @@
 	objectVersion = 50;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		EA69A747211ADF2A0095FEFA /* Unity3D_BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */; };
+		EA69A74A211AFA440095FEFA /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA69A749211AFA440095FEFA /* CoreBluetooth.framework */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		EA69A73C211ADE900095FEFA /* Unity3D_BLE.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Unity3D_BLE.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA69A73F211ADE900095FEFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EA69A745211ADF2A0095FEFA /* Unity3D_BLE.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Unity3D_BLE.h; sourceTree = "<group>"; };
+		EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Unity3D_BLE.m; sourceTree = "<group>"; };
+		EA69A749211AFA440095FEFA /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -16,6 +24,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EA69A74A211AFA440095FEFA /* CoreBluetooth.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -25,8 +34,11 @@
 		EA69A733211ADE900095FEFA = {
 			isa = PBXGroup;
 			children = (
-				EA69A73E211ADE900095FEFA /* Unity3D_BLE */,
+				EA69A745211ADF2A0095FEFA /* Unity3D_BLE.h */,
+				EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */,
+				EA69A73F211ADE900095FEFA /* Info.plist */,
 				EA69A73D211ADE900095FEFA /* Products */,
+				EA69A748211AFA430095FEFA /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -38,12 +50,12 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		EA69A73E211ADE900095FEFA /* Unity3D_BLE */ = {
+		EA69A748211AFA430095FEFA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				EA69A73F211ADE900095FEFA /* Info.plist */,
+				EA69A749211AFA440095FEFA /* CoreBluetooth.framework */,
 			);
-			path = Unity3D_BLE;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +124,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EA69A747211ADF2A0095FEFA /* Unity3D_BLE.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,14 +243,21 @@
 		EA69A743211ADE900095FEFA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEPLOYMENT_LOCATION = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
 				DEVELOPMENT_TEAM = DCRDC96BCR;
-				INFOPLIST_FILE = Unity3D_BLE/Info.plist;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				DSTROOT = "$(PROJECT_DIR)";
+				INFOPLIST_FILE = Info.plist;
+				INSTALL_PATH = /Assets/Plugins;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = "fi.aalto.neppi.Unity3D-BLE";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
+				STRIP_INSTALLED_PRODUCT = NO;
 				WRAPPER_EXTENSION = bundle;
 			};
 			name = Debug;
@@ -245,14 +265,21 @@
 		EA69A744211ADE900095FEFA /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEPLOYMENT_LOCATION = YES;
+				DEPLOYMENT_POSTPROCESSING = YES;
 				DEVELOPMENT_TEAM = DCRDC96BCR;
-				INFOPLIST_FILE = Unity3D_BLE/Info.plist;
-				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Bundles";
+				DSTROOT = "$(PROJECT_DIR)";
+				INFOPLIST_FILE = Info.plist;
+				INSTALL_PATH = /Assets/Plugins;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				PRODUCT_BUNDLE_IDENTIFIER = "fi.aalto.neppi.Unity3D-BLE";
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SKIP_INSTALL = YES;
+				SKIP_INSTALL = NO;
+				STRIP_INSTALLED_PRODUCT = NO;
 				WRAPPER_EXTENSION = bundle;
 			};
 			name = Release;
