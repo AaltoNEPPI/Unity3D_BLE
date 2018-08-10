@@ -13,22 +13,24 @@
 @interface BLE : NSObject
 @end
 
-typedef CBPeripheral *BLEPeripheral;
-typedef NSDictionary *BLEAdvertisementData;
+typedef CBPeripheral BLEPeripheral;
+typedef NSDictionary BLEAdvertisementData;
 
 typedef void *BLEConnection;
 typedef void *BLECharacteristic;
 
-typedef void (*BLEScanDeviceFoundCallback)(BLEPeripheral p, BLEAdvertisementData add, long int RSSI);
-typedef void (*BLESubscribeDataCallback)(void *context, void *dataTBD);
+typedef void BLEScanDeviceFoundCallback(void *cs_context, BLEPeripheral *p, BLEAdvertisementData *add, long int RSSI);
+typedef void BLESubscribeDataCallback(void *cs_context, void *dataTBD);
 
-void BLEInitialise(void); // Only central supported for now
-void BLEDeInitialise(void);
-void BLEScan(char *serviceUUID, BLEScanDeviceFoundCallback callback);
-void BLEScanStop(void);
-BLEConnection BLEConnect(BLEPeripheral p);
-void BLEDisconnect(BLEConnection connection);
-void BLEDisconnectAll(void);
+void BLEInitLog(void);
+BLE *BLECreateContext(void);
+void BLEInitialise(BLE *this, void *cs_context);
+void BLEDeInitialise(BLE *this);
+void BLEScanStart(BLE *this, char *serviceUUID, BLEScanDeviceFoundCallback *callback);
+void BLEScanStop(BLE *this);
+BLEConnection BLEConnect(BLEPeripheral *p);
+void BLEDisconnect(BLEConnection *connection);
+void BLEDisconnectAll(BLE *this);
 void BLECharacteristicRead(BLEConnection connection, BLECharacteristic c);
 void BLECharacteristicWrite(BLEConnection connection, BLECharacteristic c, void *value);
 void BLECharacteristicSubscribe(BLEConnection connection, BLECharacteristic c, BLESubscribeDataCallback *callback);
