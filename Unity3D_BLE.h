@@ -16,7 +16,7 @@
 typedef CBPeripheral BLEPeripheral;
 typedef NSDictionary BLEAdvertisementData;
 
-typedef void *BLEConnection;
+typedef void BLEConnection;
 typedef void *BLECharacteristic;
 
 typedef void BLEScanDeviceFoundCallback(void *cs_context, BLEPeripheral *p, BLEAdvertisementData *add, long int RSSI);
@@ -28,12 +28,17 @@ void BLEInitialise(BLE *this, void *cs_context);
 void BLEDeInitialise(BLE *this);
 void BLEScanStart(BLE *this, char *serviceUUID, BLEScanDeviceFoundCallback *callback);
 void BLEScanStop(BLE *this);
-BLEConnection BLEConnect(BLEPeripheral *p);
-void BLEDisconnect(BLEConnection *connection);
+BLEPeripheral *BLECreatePeripheral(BLEPeripheral *p);
+BLEConnection *BLEConnect(BLE *this, BLEPeripheral *p);
+void BLEDisconnect(BLE *this, BLEConnection *connection);
 void BLEDisconnectAll(BLE *this);
-void BLECharacteristicRead(BLEConnection connection, BLECharacteristic c);
-void BLECharacteristicWrite(BLEConnection connection, BLECharacteristic c, void *value);
-void BLECharacteristicSubscribe(BLEConnection connection, BLECharacteristic c, BLESubscribeDataCallback *callback);
-void BLECharacteristicUnsubscribe(BLEConnection connection, BLECharacteristic c);
+void BLECharacteristicRead(BLEConnection *connection, BLECharacteristic c);
+void BLECharacteristicWrite(BLEConnection *connection, BLECharacteristic c, void *value);
+void BLECharacteristicSubscribe(BLEConnection *connection, BLECharacteristic c, BLESubscribeDataCallback *callback);
+void BLECharacteristicUnsubscribe(BLEConnection *connection, BLECharacteristic c);
+
+void BLEPeripheralGetIdentifier(BLEPeripheral *peripheral, char *identifier, int len);
+void BLEPeripheralGetName(BLEPeripheral *peripheral, char *name, int len);
+void BLEPeripheralRelease(BLEPeripheral *peripheral);
 
 #endif /* Unity3D_BLE_h */

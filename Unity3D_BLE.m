@@ -38,8 +38,15 @@
     }
 }
 
+- (void)centralManager:(CBCentralManager *)manager
+    didConnectPeripheral:(CBPeripheral *)peripheral
+{
+    NSLog(@"Peripheral %p connected", peripheral);
+    peripheral.delegate = self;
+}
 
-- (void)centralManagerDidUpdateState:(nonnull CBCentralManager *)manager {
+- (void)centralManagerDidUpdateState:(nonnull CBCentralManager *)manager
+{
     NSLog(@"centralManagerDidUpdateState: %ld", manager.state);
 }
 
@@ -49,7 +56,8 @@
 
 /* Unity3D plain C API */
 
-void BLEInitLog(void) {
+void BLEInitLog(void)
+{
     /* Redirect NSlog to a known good file */
     char filename[PATH_MAX];
     sprintf(filename, "%s/%s", getenv("HOME"), "Library/Logs/Unity/Plugin.log");
@@ -57,7 +65,8 @@ void BLEInitLog(void) {
     NSLog(@"Log initialised.");
 }
 
-BLE *BLECreateContext(void) {
+BLE *BLECreateContext(void)
+{
     BLE *this = [[BLE alloc] init];
 
     return this;
@@ -106,26 +115,63 @@ void BLEScanStop(BLE *this)
     NSLog(@"Stopping scanning...done.");
 }
 
-BLEConnection BLEConnect(BLEPeripheral *p) {
-    return (BLEConnection)0;
+BLEPeripheral *BLECreatePeripheral(BLEPeripheral *p)
+{
+    [p retain];
+    return p;
 }
 
-void BLEDisconnect(BLEConnection *connection) {
+void BLEPeriperalRelease(BLEPeripheral *p)
+{
+    [p release];
 }
 
-void BLEDisconnectAll(BLE *this) {
+void BLEPeripheralGetIdentifier(
+    BLEPeripheral *peripheral, char *identifier, int len)
+{
+    [[[peripheral identifier] UUIDString]
+	getCString: identifier maxLength: len encoding: NSASCIIStringEncoding];
 }
 
-void BLECharacteristicRead(BLEConnection connection, BLECharacteristic c) {
+void BLEPeripheralGetName(
+    BLEPeripheral *peripheral, char *name, int len)
+{
+    [[peripheral name]
+	getCString: name maxLength: len encoding: NSASCIIStringEncoding];
 }
 
-void BLECharacteristicWrite(BLEConnection connection, BLECharacteristic c, void *value) {
+BLEConnection *BLEConnect(BLE *this, BLEPeripheral *p)
+{
+    NSLog(@"Connecting to %p", p);
+    [this->manager connectPeripheral: p options:nil];
+    return p;
 }
 
-void BLECharacteristicSubscribe(BLEConnection connection, BLECharacteristic c , BLESubscribeDataCallback *callback) {
+void BLEDisconnect(BLE *this, BLEConnection *connection)
+{
+    BLEPeripheral *p = connection;
+    NSLog(@"Disconnecting %p", p);
+    [this->manager cancelPeripheralConnection: p];
 }
 
-void BLECharacteristicUnsubscribe(BLEConnection connection, BLECharacteristic c) {
+void BLEDisconnectAll(BLE *this)
+{
+}
+
+void BLECharacteristicRead(BLEConnection *connection, BLECharacteristic c)
+{
+}
+
+void BLECharacteristicWrite(BLEConnection *connection, BLECharacteristic c, void *value)
+{
+}
+
+void BLECharacteristicSubscribe(BLEConnection *connection, BLECharacteristic c , BLESubscribeDataCallback *callback)
+{
+}
+
+void BLECharacteristicUnsubscribe(BLEConnection *connection, BLECharacteristic c)
+{
 }
 
 
