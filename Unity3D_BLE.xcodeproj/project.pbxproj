@@ -7,16 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		EA69A747211ADF2A0095FEFA /* Unity3D_BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */; };
+		EA69A747211ADF2A0095FEFA /* Unity3D_BLENativeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */; };
 		EA69A74A211AFA440095FEFA /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA69A749211AFA440095FEFA /* CoreBluetooth.framework */; };
+		EA7A234F2120027A00C101CB /* Unity3D_BLENativePeripheral.m in Sources */ = {isa = PBXBuildFile; fileRef = EA7A234E2120027A00C101CB /* Unity3D_BLENativePeripheral.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		EA69A73C211ADE900095FEFA /* Unity3D_BLE.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Unity3D_BLE.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA69A73F211ADE900095FEFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		EA69A745211ADF2A0095FEFA /* Unity3D_BLE.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Unity3D_BLE.h; sourceTree = "<group>"; };
-		EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Unity3D_BLE.m; sourceTree = "<group>"; };
+		EA69A745211ADF2A0095FEFA /* Unity3D_BLENativeManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Unity3D_BLENativeManager.h; sourceTree = "<group>"; };
+		EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Unity3D_BLENativeManager.m; sourceTree = "<group>"; };
 		EA69A749211AFA440095FEFA /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		EA7A234D2120027A00C101CB /* Unity3D_BLENativePeripheral.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Unity3D_BLENativePeripheral.h; sourceTree = "<group>"; };
+		EA7A234E2120027A00C101CB /* Unity3D_BLENativePeripheral.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Unity3D_BLENativePeripheral.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,8 +37,10 @@
 		EA69A733211ADE900095FEFA = {
 			isa = PBXGroup;
 			children = (
-				EA69A745211ADF2A0095FEFA /* Unity3D_BLE.h */,
-				EA69A746211ADF2A0095FEFA /* Unity3D_BLE.m */,
+				EA7A234D2120027A00C101CB /* Unity3D_BLENativePeripheral.h */,
+				EA7A234E2120027A00C101CB /* Unity3D_BLENativePeripheral.m */,
+				EA69A745211ADF2A0095FEFA /* Unity3D_BLENativeManager.h */,
+				EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */,
 				EA69A73F211ADE900095FEFA /* Info.plist */,
 				EA69A73D211ADE900095FEFA /* Products */,
 				EA69A748211AFA430095FEFA /* Frameworks */,
@@ -124,7 +129,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EA69A747211ADF2A0095FEFA /* Unity3D_BLE.m in Sources */,
+				EA69A747211ADF2A0095FEFA /* Unity3D_BLENativeManager.m in Sources */,
+				EA7A234F2120027A00C101CB /* Unity3D_BLENativePeripheral.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +250,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_ENABLE_OBJC_WEAK = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
@@ -266,7 +272,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_ENABLE_OBJC_WEAK = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEPLOYMENT_LOCATION = YES;
