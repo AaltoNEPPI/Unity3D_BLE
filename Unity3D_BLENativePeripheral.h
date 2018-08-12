@@ -15,7 +15,8 @@
     CBPeripheral *cbperipheral;
     void (*subscribeDataCallback)(void *, void */*XXX*/);
     CBUUID *service; // XXX Only one service?
-    NSArray<CBUUID *> *characteristics;
+    CBService *cbservice;
+    NSMutableArray<CBUUID *> *characteristics;
 }
 @end
 
@@ -24,8 +25,12 @@ BLENativePeripheral *BLENativeCreatePeripheral(void *cbperipheral);
 void BLENativePeripheralGetIdentifier    (BLENativePeripheral *p, char *identifier, int len);
 void BLENativePeripheralGetName          (BLENativePeripheral *p, char *name, int len);
 void BLENativePeripheralSetService       (BLENativePeripheral *p, char *service);
-void BLENativePeripheralSetCharacteristic(BLENativePeripheral *p,
-					  char *characteristic/*XXX*/); 
+
+void BLENativePeripheralAddCharacteristic(BLENativePeripheral *p,
+					  char *characteristic);
+
+void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
+					  char *characteristic);
 
 void BLENativePeripheralRelease          (BLENativePeripheral *p);
 

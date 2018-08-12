@@ -184,27 +184,6 @@ void BLENativeDisconnect(BLENativeManager *this, BLENativeConnection *connection
 
 void BLENativeDisconnectAll(BLENativeManager *this)
 {
+    // XXX TBD
 }
-
-void BLENativeCharacteristicRead(
-    BLENativeConnection *connection, BLENativeCharacteristic c)
-{
-}
-
-void BLENativeCharacteristicWrite(
-    BLENativeConnection *connection, BLENativeCharacteristic c, void *value)
-{
-}
-
-void BLENativeCharacteristicSubscribe(
-    BLENativeConnection *connection, BLENativeCharacteristic c,
-    BLENativeSubscribeDataCallback *callback)
-{
-}
-
-void BLENativeCharacteristicUnsubscribe(
-    BLENativeConnection *connection, BLENativeCharacteristic c)
-{
-}
-
 

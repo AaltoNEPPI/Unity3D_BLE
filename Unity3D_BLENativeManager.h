@@ -17,7 +17,6 @@
 typedef NSDictionary BLENativeAdvertisementData;
 
 typedef BLENativePeripheral BLENativeConnection;
-typedef void *BLENativeCharacteristic;
 
 typedef void BLENativeScanDeviceFoundCallback(
     void *cs_context,
@@ -46,16 +45,6 @@ BLENativeConnection *
      BLENativeConnect      (BLENativeManager *this, BLENativePeripheral *p);
 void BLENativeDisconnect   (BLENativeManager *this, BLENativeConnection *c);
 void BLENativeDisconnectAll(BLENativeManager *this);
-
-void BLENativeCharacteristicRead       (BLENativeConnection *c,
-					BLENativeCharacteristic ch);
-void BLENativeCharacteristicWrite      (BLENativeConnection *c,
-					BLENativeCharacteristic ch, void *value);
-void BLENativeCharacteristicSubscribe  (BLENativeConnection *c,
-					BLENativeCharacteristic ch,
-					BLENativeSubscribeDataCallback *callback);
-void BLENativeCharacteristicUnsubscribe(BLENativeConnection *c,
-					BLENativeCharacteristic ch);
 
 
 #endif /* Unity3D_BLENativeManager_h */

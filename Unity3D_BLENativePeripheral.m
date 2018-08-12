@@ -23,6 +23,9 @@
     if (self) {
         [cbperipheral retain];
         self->cbperipheral = cbperipheral;
+	self->service = NULL;
+	self->cbservice = NULL;
+	self->characteristics = [[NSMutableArray<CBUUID *> alloc] init];
     }
     return self;
 }
@@ -36,53 +39,112 @@
     }
     if (self->service) {
        [self->service release];
-	self->service = NULL;
+        self->service = NULL;
+    }
+    if (self->cbservice) {
+       [self->cbservice release];
+        self->cbservice = NULL;
     }
     if (self->characteristics) {
        [self->characteristics release];
-	self->characteristics = NULL;
+        self->characteristics = NULL;
     }
     [super dealloc];
 }
 
-- (void)   peripheral:(CBPeripheral         *)cbperipheral 
-    didModifyServices:(NSArray<CBService *> *)invalidatedServices
+- (void)tryLocateMyServiceWithDiscovery: (bool) withDiscovery
 {
-    assert(cbperipheral == self->cbperipheral);
-    NSLog(@"Discovering service %@ for peripheral %@", service, cbperipheral);
-    if (service) {
-	[cbperipheral discoverServices: @[service]];
+    NSLog(@"Trying to locate my service");
+    if (NULL == self->cbperipheral) {
+	NSLog(@"No CBPeripheral yet, giving up");
+	return;
     }
-}
-
-- (bool)locateMyCharacteristicsWithinServices: (NSArray<CBService *> *)services
-{
-    for (CBService *service in services) {
+    NSArray<CBService *> *services = [self->cbperipheral services];
+    for (CBService *cbservice in services) {
         NSLog(@"Considering service %@", service);
-        if (service.UUID == service.UUID) {
-            [cbperipheral discoverCharacteristics: characteristics
-				       forService: service];
+        if ([self->service isEqual: cbservice.UUID]) {
+            NSLog(@"Adapting service %@", cbservice);
+
+            if (self->cbservice) {
+	       [self->cbservice release];
+	        self->cbservice = NULL;
+	    }
+
+	    [cbservice retain]; // Released in SetService or dealloc
+	    self->cbservice = cbservice;
+
+            if (characteristics) {
+                NSLog(@"Discovering characteristics %@", characteristics);
+		[cbperipheral discoverCharacteristics: characteristics
+					   forService: cbservice];
+	    }
         }
-        return true;
+        return;
     }
-    return false;
+
+    if (withDiscovery) {
+	/* Not found, kick a discovery if connected. */
+	if (self->cbperipheral.state == CBPeripheralStateConnected) {
+	    NSLog(@"Discovering %@ for service %@", self, self->service);
+	    [self->cbperipheral discoverServices: @[self->service]];
+	}
+    }
 }
 
 - (void)     peripheral:(CBPeripheral *)cbperipheral
     didDiscoverServices:(NSError      *)error
 {
     assert(cbperipheral == self->cbperipheral);
-    (void)[self locateMyCharacteristicsWithinServices: cbperipheral.services];
+    [self tryLocateMyServiceWithDiscovery: NO];
+}
+
+- (void)   peripheral:(CBPeripheral         *)cbperipheral
+    didModifyServices:(NSArray<CBService *> *)invalidatedServices
+{
+    assert(cbperipheral == self->cbperipheral);
+    NSLog(@"Discovering service %@ for peripheral %@", service, cbperipheral);
+    if (service) {
+        [cbperipheral discoverServices: @[service]];
+    }
 }
 
 - (void)                      peripheral:(CBPeripheral *)cbperipheral
     didDiscoverCharacteristicsForService:(CBService    *)service
-				   error:(NSError      *)error
+                                   error:(NSError      *)error
 {
+    NSLog(@"Discovered characteristics");
     assert(cbperipheral == self->cbperipheral);
-    for (CBCharacteristic *characteristic in service.characteristics) {
-        NSLog(@"Discovered characteristic %@", characteristic);
+    if (error) {
+        NSLog(@"Error discovering characteristics: %@", error);
+        return;
     }
+    for (CBCharacteristic *secha in service.characteristics) {
+        for (CBUUID *mychauuid in self->characteristics) {
+            if ([mychauuid isEqual: secha.UUID]) {
+                NSLog(@"Subscribing to characteristic %@", secha);
+		[cbperipheral setNotifyValue: YES forCharacteristic: secha];		            }
+        }
+    }
+}
+
+- (void)                         peripheral:(CBPeripheral *    )cbperipheral
+didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic
+                                      error:(NSError *         )error
+{
+    if (error) {
+        NSLog(@"Error changing notification state: %@", error);
+        return;
+    }
+    NSLog(@"Notification state changed for %@", characteristic);
+}
+
+- (void)             peripheral:(CBPeripheral *    )cbperipheral
+didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
+                          error:(NSError *         )error {
+
+    NSData *data = characteristic.value;
+    NSLog(@"Characteristic %@ new value %@", characteristic, data);
+    // parse the data as needed
 }
 
 @end
@@ -101,7 +163,7 @@ BLENativePeripheral *BLENativeCreatePeripheral(void *cbp)
         return this;
     } else {
         BLENativePeripheral *this = [[BLENativePeripheral alloc]
-					initWith: cbperipheral];
+                                        initWith: cbperipheral];
         cbperipheral.delegate = this;
         return this;
     }
@@ -124,8 +186,8 @@ void BLENativePeripheralGetIdentifier(
         UUID = @"";
     }
     [UUID getCString: identifier /* [out] */
-	   maxLength: len
-	    encoding: NSASCIIStringEncoding];
+           maxLength: len
+            encoding: NSASCIIStringEncoding];
 }
 
 void BLENativePeripheralGetName(
@@ -138,8 +200,8 @@ void BLENativePeripheralGetName(
         nsname = @"";
     }
     [nsname getCString: name /* [out] */
-	     maxLength: len
-	      encoding: NSASCIIStringEncoding];
+             maxLength: len
+              encoding: NSASCIIStringEncoding];
 }
 
 /**
@@ -152,37 +214,53 @@ void BLENativePeripheralSetService(
     NSLog(@"Configuring peripheral %@ service: %s", this, servicestring);
 
     NSString *nsservice =
-	[NSString stringWithCString: servicestring
-			   encoding: NSUTF8StringEncoding];
+        [NSString stringWithCString: servicestring
+                           encoding: NSUTF8StringEncoding];
+
+    if (this->cbservice) {
+	[this->cbservice release]; // Retained in tryDiscoveryMyServices
+	this->cbservice = NULL;
+    }
 
     if (this->service) {
-	[this->service release];
-	this->service = NULL;
+        [this->service release];
+        this->service = NULL;
     }
 
     this->service = [CBUUID UUIDWithString: nsservice];
-    [this->service retain]; // Released above or in dealloc
+    [this->service retain]; // Released above in if or in dealloc
 
     /*
      * If there is already a CoreBluetooth peripheral,
      * initiate service discovery if needed.
      */
-    if (NULL != this->cbperipheral) {
-	// First try to find within already found services; if fail, then scan
-	if ([this locateMyCharacteristicsWithinServices:
-		      [this->cbperipheral services]])
-	    return;
-		  
+    [this tryLocateMyServiceWithDiscovery: YES];
+}
+
+void BLENativePeripheralAddCharacteristic(
+    BLENativePeripheral *this, char *chastring)
+{
+    NSLog(@"Adding to peripheral %@ characteristic: %s", this, chastring);
+
+    NSString *nscha = [NSString stringWithCString: chastring
+                                         encoding: NSUTF8StringEncoding];
+
+    CBUUID *cha = [CBUUID UUIDWithString: nscha];
+    [this->characteristics addObject: cha];
+
+    if (NULL != this->cbperipheral && NULL != this->cbservice) {
         if (this->cbperipheral.state == CBPeripheralStateConnected) {
-            NSLog(@"Discovering peripheral %@ for service %@", this, this->service);
-            [this->cbperipheral discoverServices: @[this->service]];
+            NSLog(@"Subscribing peripheral %@ to characteristic %@",
+                  this, cha);
+            [this->cbperipheral
+              discoverCharacteristics: this->characteristics
+              forService: this->cbservice];
         }
     }
 }
 
-void BLENativePeripheralSetCharacteristic( /*XXX*/
-    BLENativePeripheral *p, char *c)
+void BLENativePeripheralRemoveCharacteristic(
+    BLENativePeripheral *this, char *chastrinfg)
 {
+    // XXX TBD
 }
-    
-
