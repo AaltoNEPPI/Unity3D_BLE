@@ -16,7 +16,7 @@
     void *cs_context; // C# BLE context
     CBCentralManager *cbmanager;
     void (*deviceFoundCallback)(
-        void *, CBPeripheral *, BLENativeAdvertisementData */*XXX*/, long int);
+        void *, CBPeripheral *, NativeAdvertisementData */*XXX*/, long int);
 }
 @end
 
@@ -165,7 +165,7 @@ void BLENativeScanStop(BLENativeManager *this)
 }
 
 
-BLENativeConnection *BLENativeConnect(
+NativeConnection *BLENativeConnect(
     BLENativeManager *this, BLENativePeripheral *p)
 {
     NSLog(@"Connecting to peripheral: name=%@", p->cbperipheral.name);
@@ -174,7 +174,7 @@ BLENativeConnection *BLENativeConnect(
     return p;
 }
 
-void BLENativeDisconnect(BLENativeManager *this, BLENativeConnection *connection)
+void BLENativeDisconnect(BLENativeManager *this, NativeConnection *connection)
 {
     BLENativePeripheral *p = connection; // XXX
     [p release];

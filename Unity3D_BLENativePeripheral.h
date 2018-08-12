@@ -8,6 +8,8 @@
 #ifndef Unity3D_BLENativePeripheral_h
 #define Unity3D_BLENativePeripheral_h
 
+#ifdef __APPLE__
+
 #import <CoreBluetooth/CoreBluetooth.h>
 
 @interface BLENativePeripheral : NSObject {
@@ -19,6 +21,16 @@
     NSMutableArray<CBUUID *> *characteristics;
 }
 @end
+
+#endif
+
+#ifdef __linux__
+
+typedef struct {
+    int dummy; // XXX
+} BLENativePeripheral;
+
+#endif
 
 BLENativePeripheral *BLENativeCreatePeripheral(void *cbperipheral);
 
