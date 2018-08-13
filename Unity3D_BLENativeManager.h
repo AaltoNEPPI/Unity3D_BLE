@@ -27,9 +27,7 @@ typedef CBPeripheral NativePeripheral;
 
 #include "Unity3D_BLENativePeripheral.h"
 
-typedef struct {
-    int dummy; // XXX
-} BLENativeManager;
+typedef struct NativeManager BLENativeManager;
 
 typedef void NativeConnection;
 typedef void NativeAdvertisementData;
@@ -50,7 +48,16 @@ typedef void BLENativeSubscribeDataCallback(
 
 void BLENativeInitLog(void);
 
+/**
+ * Returns a native (Mac OS X or Linux) binary object.
+ *
+ * This function is called by the C# level to create a native level
+ * binary object, referenced from the C# level.  The same reference
+ * is passed back as `this` int he subsequent calls.
+ */
 BLENativeManager *BLENativeCreateManager(void);
+
+void BLENativeLinuxHelper  (BLENativeManager *this); // Only in Linux
 
 void BLENativeInitialise   (BLENativeManager *this, void *cs_context);
 void BLENativeDeInitialise (BLENativeManager *this);

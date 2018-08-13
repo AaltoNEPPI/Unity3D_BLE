@@ -187,3 +187,11 @@ void BLENativeDisconnectAll(BLENativeManager *this)
     // XXX TBD
 }
 
+#if UNITY_TEST_THREADING
+/* XXX REMOVE */
+void BLENativeLinuxHelper(BLENativeManager *this)
+{
+    NSLog(@"LinuxHelper: Sleeping");
+    sleep(1);
+}
+#endif

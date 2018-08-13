@@ -10,26 +10,56 @@
 
 #include "Unity3D_BLENativeManager.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdatomic.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <string.h>
+
+typedef enum {
+    INACTIVE,
+    SCANNING,
+} ThreadState;
+
+struct NativeManager {
+    void *cs_context;
+    _Atomic ThreadState state;
+};
+
 void BLENativeInitLog(void)
 {
+    // Nothing to be done here under Linux?
 }
 
 BLENativeManager *BLENativeCreateManager(void)
 {
-    return (void*)0;
+    BLENativeManager *this = malloc(sizeof(BLENativeManager));
+    memset(this, 0, sizeof(BLENativeManager));
+    return this;
 }
 
 void BLENativeInitialise(BLENativeManager *this, void *cs_context)
 {
+    this->cs_context = cs_context;
 }
 
 void BLENativeDeInitialise(BLENativeManager *this)
 {
+    this->cs_context = NULL;
+    free(this);
 }
 
 void BLENativeScanStart(
     BLENativeManager *this, char *serviceUUID,
     BLENativeScanDeviceFoundCallback *callback)
+{
+    /* See https://electronics.stackexchange.com/questions/
+                                 82098/ble-scan-interval-and-window
+     */
+}
+
+static void ScanContinue(BLENativeManager *this)
 {
 }
 
@@ -50,5 +80,24 @@ void BLENativeDisconnect(
 
 void BLENativeDisconnectAll(BLENativeManager *this)
 {
+}
+
+/**
+ * XXX
+ *
+ * Continuously called by a dedicated C# thread.
+ */
+void BLENativeLinuxHelper(BLENativeManager *this)
+{
+    const int retval = sd_bus_process(this->bus, XXX);
+    if (retval < 0) {
+	perror("Unity3D_BLENativeManager: sd_bus_process");
+	return;
+    }
+    if (retval == 0) {
+	sd_bus_wait(this->bus, XXX);
+    }
+
+    /* Return back to C#, to be called again */
 }
 
