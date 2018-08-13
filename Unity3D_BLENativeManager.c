@@ -44,7 +44,7 @@ BLENativeManager *BLENativeCreateManager(void)
 
 void BLENativeInitialise(BLENativeManager *this, void *cs_context)
 {
-    fprintf(stderr, "Unity3D_BLE: BLENativeInitialise...\n");
+    fprintf(stderr, "Unity3D_BLE: BLENativeInitialise.\n");
     if (this->cs_context) {
 	fprintf(stderr, "Unity3D_BLE: BLENativeInitialise: Already initialised.");
 	return;
@@ -57,17 +57,27 @@ void BLENativeInitialise(BLENativeManager *this, void *cs_context)
 	BLENativeDeInitialise(this);
 	return;
     }
-    fprintf(stderr, "Unity3D_BLE: BLENativeInitialise...done.\n");
 }
 
 void BLENativeDeInitialise(BLENativeManager *this)
 {
+    fprintf(stderr, "Unity3D_BLE: BLENativeDeInitialise.\n");
     this->cs_context = NULL;
     if (this->bus) {
 	sd_bus_unref(this->bus);
 	this->bus = NULL;
     }
     free(this);
+}
+
+static int scanStartCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    assert(reply);
+
+    fprintf(stderr, "Unity3D_BLE: scanStartCallback.\n");
+
+    return 1;
 }
 
 void BLENativeScanStart(
@@ -77,6 +87,22 @@ void BLENativeScanStart(
     /* See https://electronics.stackexchange.com/questions/
                                  82098/ble-scan-interval-and-window
      */
+    sd_bus_message *m = NULL;
+
+    const int retval = sd_bus_message_new_method_call(
+	this->bus,
+	&m,
+	"org.bluez",
+	"/org/bluez/hc0",
+	"org.bluez.Adapter1",
+	"StartDiscovery");
+    if (retval < 0) {
+	perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
+	return;
+    }
+
+    sd_bus_call_async(this->bus, NULL, m, scanStartCallback, NULL, 0);
+    sd_bus_message_unref(m);
 }
 
 static void ScanContinue(BLENativeManager *this)
@@ -115,6 +141,7 @@ void BLENativeLinuxHelper(BLENativeManager *this)
 	return;
     }
     if (retval == 0) {
+	fprintf(stderr, "Unity3D_BLE: BLENativeLinuxHelper: entering sd_bus_wait\n");
 	sd_bus_wait(this->bus, -1);
     }
 
