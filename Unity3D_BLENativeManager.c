@@ -17,6 +17,8 @@
 #include <sys/socket.h>
 #include <string.h>
 
+#include <systemd/sd-bus.h>
+
 typedef enum {
     INACTIVE,
     SCANNING,
@@ -24,6 +26,7 @@ typedef enum {
 
 struct NativeManager {
     void *cs_context;
+    sd_bus *bus;
     _Atomic ThreadState state;
 };
 
@@ -41,12 +44,29 @@ BLENativeManager *BLENativeCreateManager(void)
 
 void BLENativeInitialise(BLENativeManager *this, void *cs_context)
 {
+    fprintf(stderr, "Unity3D_BLE: BLENativeInitialise...\n");
+    if (this->cs_context) {
+	fprintf(stderr, "Unity3D_BLE: BLENativeInitialise: Already initialised.");
+	return;
+    }
     this->cs_context = cs_context;
+    assert(NULL == this->bus);
+    const int retval = sd_bus_default_system(&this->bus);
+    if (retval < 0) {
+	perror("Unity3D_BLE: BLENativeInitialise: sd_bus_default_system");
+	BLENativeDeInitialise(this);
+	return;
+    }
+    fprintf(stderr, "Unity3D_BLE: BLENativeInitialise...done.\n");
 }
 
 void BLENativeDeInitialise(BLENativeManager *this)
 {
     this->cs_context = NULL;
+    if (this->bus) {
+	sd_bus_unref(this->bus);
+	this->bus = NULL;
+    }
     free(this);
 }
 
@@ -89,13 +109,13 @@ void BLENativeDisconnectAll(BLENativeManager *this)
  */
 void BLENativeLinuxHelper(BLENativeManager *this)
 {
-    const int retval = sd_bus_process(this->bus, XXX);
+    const int retval = sd_bus_process(this->bus, NULL/*XXX*/);
     if (retval < 0) {
 	perror("Unity3D_BLENativeManager: sd_bus_process");
 	return;
     }
     if (retval == 0) {
-	sd_bus_wait(this->bus, XXX);
+	sd_bus_wait(this->bus, -1);
     }
 
     /* Return back to C#, to be called again */
