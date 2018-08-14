@@ -10,8 +10,6 @@ TARGET = $(DIR)/libUnity3D_BLE.so
 
 OBJS = Unity3D_BLENativeManager.o Unity3D_BLENativePeripheral.o
 
-LIBS = /lib/x86_64-linux-gnu/libsystemd.so.0
-
 # XXX
 CFLAGS = -U__APPLE__ -D__linux__
 CFLAGS += -fPIC
@@ -21,7 +19,7 @@ CFLAGS += -g
 all:	$(DIR) $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -shared $(OBJS) $(LIBS) -o $@
+	$(CC) $(CFLAGS) -shared $(OBJS) -o $@ -lsystemd
 
 $(DIR):
 	mkdir -p $(DIR)
