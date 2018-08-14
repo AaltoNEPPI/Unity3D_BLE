@@ -42,116 +42,217 @@ BLENativeManager *BLENativeCreateManager(void)
     return this;
 }
 
+static int deviceCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
+
+    assert(reply);
+
+    return 1;
+}
+
+static int parseObjectAddDevice(BLENativeManager *this, sd_bus_message *m)
+{
+    int r;
+    const char *path;
+
+#   define CHECK_RETURN(r) if ((r) < 0) {                               \
+        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, (r)); \
+    }
+    sd_bus_message_read_basic(m, 'o', &path);
+
+    fprintf(stderr, "Object %s\n", path);
+
+    r = sd_bus_message_enter_container(m, 'a', "{sa{sv}}");
+    CHECK_RETURN(r);
+    {
+
+        while ((r = sd_bus_message_enter_container(m, 'e', "sa{sv}")) > 0) {
+            const char *interface;
+
+            sd_bus_message_read_basic(m, 's', &interface);
+            fprintf(stderr, "  Interface %s\n", interface);
+
+            r = sd_bus_message_enter_container(m, 'a', "{sv}");
+            CHECK_RETURN(r);
+            {
+
+                while ((r = sd_bus_message_enter_container(m, 'e', "sv")) > 0) {
+                    const char *property;
+
+                    sd_bus_message_read_basic(m, 's', &property);
+
+                    /* XXX: Handle the variant contents */
+                    r = sd_bus_message_skip(m, "v");
+
+                    r = sd_bus_message_exit_container(m); // 'e', "sv"
+                    CHECK_RETURN(r);
+                }
+                CHECK_RETURN(r);
+
+            }
+            r = sd_bus_message_exit_container(m); // 'a', "{sv}"
+            CHECK_RETURN(r);
+
+            r = sd_bus_message_exit_container(m); // 'e', "sa{sv}"
+            CHECK_RETURN(r);
+
+#define INTERFACE "org.bluez.Device1"
+            if (!strncmp(INTERFACE, interface, sizeof(INTERFACE))) {
+                fprintf(stderr, "    Adding as device.\n");
+
+                r = sd_bus_add_object(
+                    this->bus,
+                    NULL,
+                    path,
+                    deviceCallback,
+                    this);
+                CHECK_RETURN(r);
+            }
+        }
+        CHECK_RETURN(r);
+
+    }
+    r = sd_bus_message_exit_container(m); // 'a', "{sa{sv}}"
+    CHECK_RETURN(r);
+
+#   undef CHECK_RETURN
+}
+
 static int getManagedObjectsCallback(
     sd_bus_message *reply, void *userdata, sd_bus_error *error)
 {
-#   define CHECK_RETURN(r) if (r < 0) { \
-	fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, r); \
-    }
+    BLENativeManager *this = userdata;
+    int r;
+
     assert(reply);
+    fprintf(stderr, "Unity3D_BLE: %s\n", __func__);
+
+    r = sd_bus_message_get_errno(reply);
+    if (r > 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: error=%d: %s\n",
+                __func__, r,    sd_bus_message_get_error(reply)->name);
+        return -r;
+    }
+
+    /* Parse objects from the message: type = a{oa{sa{sv}}} */
+    r = sd_bus_message_enter_container(reply, 'a', "{oa{sa{sv}}}");
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, r);
+        return r;
+    }
+
+    while ((r = sd_bus_message_enter_container(reply, 'e', "oa{sa{sv}}")) > 0) {
+
+        r = parseObjectAddDevice(this, reply);
+        if (r < 0) {
+            return r;
+        }
+
+        r = sd_bus_message_exit_container(reply); // 'e', "oa{sa{sv}}"
+        if (r < 0) {
+            fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, r);
+            return r;
+        }
+    }
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, r);
+        return r;
+    }
+
+    r = sd_bus_message_exit_container(reply); // 'a', "{oa{sa{sv}}}"
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, r);
+        return r;
+    }
+
+    return 1;
+}
+
+static int interfaceAddedCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    BLENativeManager *this = userdata;
+
     fprintf(stderr, "Unity3D_BLE: %s\n", __func__);
 
     const int rerr = sd_bus_message_get_errno(reply);
     if (rerr > 0) {
-	fprintf(stderr, "Unity3D_BLE: %s: error=%d: %s\n",
-		__func__, rerr,	sd_bus_message_get_error(reply)->name);
-	return -rerr;
+        fprintf(stderr, "Unity3D_BLE: %s: error=%d: %s\n",
+                __func__, rerr, sd_bus_message_get_error(reply)->name);
+        return -rerr;
     }
 
-    /* Parse objects from the message: type = a{oa{sa{sv}}} */
-    int r = sd_bus_message_enter_container(reply, 'a', "{oa{sa{sv}}}");
-    CHECK_RETURN(r);
-    {
-
-	while ((r = sd_bus_message_enter_container(reply, 'e', "oa{sa{sv}}")) > 0) {
-	    const char *path;
-
-	    sd_bus_message_read_basic(reply, 'o', &path);
-
-	    fprintf(stderr, "Object %s\n", path);
-
-	    r = sd_bus_message_enter_container(reply, 'a', "{sa{sv}}");
-	    CHECK_RETURN(r);
-	    {
-
-		while ((r = sd_bus_message_enter_container(reply, 'e', "sa{sv}")) > 0) {
-		    const char *interface;
-
-		    sd_bus_message_read_basic(reply, 's', &interface);
-		    fprintf(stderr, "  Interface %s\n", interface);
-
-		    r = sd_bus_message_enter_container(reply, 'a', "{sv}");
-		    CHECK_RETURN(r);
-		    {
-
-			while ((r = sd_bus_message_enter_container(reply, 'e', "sv")) > 0) {
-			    const char *property;
-
-			    sd_bus_message_read_basic(reply, 's', &property);
-
-			    /* XXX: Handle the variant contents */
-			    r = sd_bus_message_skip(reply, "v");
-
-			    r = sd_bus_message_exit_container(reply); // 'e', "sv"
-			    CHECK_RETURN(r);
-			}
-			CHECK_RETURN(r);
-
-		    }
-		    r = sd_bus_message_exit_container(reply); // 'a', "{sv}"
-		    CHECK_RETURN(r);
-
-		    r = sd_bus_message_exit_container(reply); // 'e', "sa{sv}"
-		    CHECK_RETURN(r);
-		}
-		CHECK_RETURN(r);
-
-	    }
-	    r = sd_bus_message_exit_container(reply); // 'a', "{sa{sv}}"
-	    CHECK_RETURN(r);
-
-	    r = sd_bus_message_exit_container(reply); // 'e', "oa{sa{sv}}"
-	    CHECK_RETURN(r);
-	}
-	CHECK_RETURN(r);
-
+    const int r = parseObjectAddDevice(this, reply);
+    if (r < 0) {
+        return r;
     }
-    r = sd_bus_message_exit_container(reply); // 'a', "{oa{sa{sv}}}"
-    CHECK_RETURN(r);
-
     return 1;
 }
+
+static int interfaceAddedInstallCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    fprintf(stderr, "Unity3D_BLE: %s\n", __func__);
+
+    const int rerr = sd_bus_message_get_errno(reply);
+    if (rerr > 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: error=%d: %s\n",
+                __func__, rerr, sd_bus_message_get_error(reply)->name);
+        return -rerr;
+    }
+}
+
 void BLENativeInitialise(BLENativeManager *this, void *cs_context)
 {
+    int r;
+
     fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
     if (this->cs_context) {
-	fprintf(stderr, "Unity3D_BLE: %s: Already initialised.", __func__);
-	return;
+        fprintf(stderr, "Unity3D_BLE: %s: Already initialised.", __func__);
+        return;
     }
     this->cs_context = cs_context;
     assert(NULL == this->bus);
-    const int retval = sd_bus_default_system(&this->bus);
-    if (retval < 0) {
-	fprintf(stderr, "Unity3D_BLE: %s: sd_bus_default_system: %d", __func__, retval);
-	BLENativeDeInitialise(this);
-	return;
+    r = sd_bus_default_system(&this->bus);
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_default_system: %d", __func__, r);
+        BLENativeDeInitialise(this);
+        return;
     }
 
-    // Subscribe to new proxy objects
+    // Subscribe to new devices
+    r = sd_bus_match_signal_async(
+        this->bus,
+        NULL,
+        "org.bluez",
+        "/",
+        "org.freedesktop.DBus.ObjectManager",
+        "InterfacesAdded",
+        interfaceAddedCallback,
+        interfaceAddedInstallCallback,
+        this);
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_match_signal_async: %d", __func__, r);
+        return;
+    }
+
+    // Ask for all existing objects, including already discovered devices
     sd_bus_message *m = NULL;
-    const int retval_msg = sd_bus_message_new_method_call(
-	this->bus,
-	&m,
-	"org.bluez",
-	"/",
-	"org.freedesktop.DBus.ObjectManager",
-	"GetManagedObjects");
-    if (retval_msg < 0) {
-	fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call: %d", __func__, retval_msg);
-	return;
+    r = sd_bus_message_new_method_call(
+        this->bus,
+        &m,
+        "org.bluez",
+        "/",
+        "org.freedesktop.DBus.ObjectManager",
+        "GetManagedObjects");
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call: %d", __func__, r);
+        return;
     }
 
-    sd_bus_call_async(this->bus, NULL, m, getManagedObjectsCallback, NULL, 0);
+    sd_bus_call_async(this->bus, NULL, m, getManagedObjectsCallback, this, 0);
     sd_bus_message_unref(m);
 }
 
@@ -161,8 +262,8 @@ void BLENativeDeInitialise(BLENativeManager *this)
 
     this->cs_context = NULL;
     if (this->bus) {
-	sd_bus_unref(this->bus);
-	this->bus = NULL;
+        sd_bus_unref(this->bus);
+        this->bus = NULL;
     }
     free(this);
 }
@@ -177,37 +278,60 @@ static int startDiscoveryCallback(
     return 1;
 }
 
+/*
+  XXX See https://electronics.stackexchange.com/questions/
+   82098/ble-scan-interval-and-window
+*/
+
 void BLENativeScanStart(
     BLENativeManager *this, char *serviceUUID,
     BLENativeScanDeviceFoundCallback *callback)
 {
-    /* See https://electronics.stackexchange.com/questions/
-                                 82098/ble-scan-interval-and-window
-     */
     sd_bus_message *m = NULL;
 
     const int retval = sd_bus_message_new_method_call(
-	this->bus,
-	&m,
-	"org.bluez",
-	"/org/bluez/hci0",
-	"org.bluez.Adapter1",
-	"StartDiscovery");
+        this->bus,
+        &m,
+        "org.bluez",
+        "/org/bluez/hci0",
+        "org.bluez.Adapter1",
+        "StartDiscovery");
     if (retval < 0) {
-	perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
-	return;
+        perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
+        return;
     }
 
-    sd_bus_call_async(this->bus, NULL, m, startDiscoveryCallback, NULL, 0);
+    sd_bus_call_async(this->bus, NULL, m, startDiscoveryCallback, this, 0);
     sd_bus_message_unref(m);
 }
 
-static void ScanContinue(BLENativeManager *this)
+static int stopDiscoveryCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
 {
-}
+    fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
 
+    assert(reply);
+
+    return 1;
+}
 void BLENativeScanStop(BLENativeManager *this)
 {
+    sd_bus_message *m = NULL;
+
+    const int retval = sd_bus_message_new_method_call(
+        this->bus,
+        &m,
+        "org.bluez",
+        "/org/bluez/hci0",
+        "org.bluez.Adapter1",
+        "StopDiscovery");
+    if (retval < 0) {
+        perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
+        return;
+    }
+
+    sd_bus_call_async(this->bus, NULL, m, stopDiscoveryCallback, this, 0);
+    sd_bus_message_unref(m);
 }
 
 NativeConnection *BLENativeConnect(
@@ -232,14 +356,28 @@ void BLENativeDisconnectAll(BLENativeManager *this)
  */
 void BLENativeLinuxHelper(BLENativeManager *this)
 {
-    const int retval = sd_bus_process(this->bus, NULL/*XXX*/);
+    sd_bus_message *m = NULL;
+    const int retval = sd_bus_process(this->bus, &m);
     if (retval < 0) {
-	perror("Unity3D_BLENativeManager: sd_bus_process");
-	return;
+        perror("Unity3D_BLENativeManager: sd_bus_process");
+        return;
     }
+    if (m) {
+        const sd_bus_error *error = sd_bus_message_get_error(m);
+        fprintf(stderr, "DBUS message: %s %s %s %s %s\n",
+            sd_bus_message_get_path(m),
+            sd_bus_message_get_interface(m),
+            sd_bus_message_get_member(m),
+            sd_bus_message_get_sender(m),
+            error? error->name: "");
+        sd_bus_message_unref(m);
+    } else {
+        fprintf(stderr, "DBUS: no message\n");
+    }
+
     if (retval == 0) {
-	fprintf(stderr, "Unity3D_BLE: BLENativeLinuxHelper: entering sd_bus_wait\n");
-	sd_bus_wait(this->bus, -1);
+        fprintf(stderr, "Unity3D_BLE: BLENativeLinuxHelper: entering sd_bus_wait\n");
+        sd_bus_wait(this->bus, -1);
     }
 
     /* Return back to C#, to be called again */
