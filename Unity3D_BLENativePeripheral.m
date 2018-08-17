@@ -209,7 +209,7 @@ void BLENativePeripheralGetName(
  *
  */
 void BLENativePeripheralSetService(
-    BLENativePeripheral *this, char *servicestring)
+    BLENativePeripheral *this, const char *servicestring)
 {
     NSLog(@"Configuring peripheral %@ service: %s", this, servicestring);
 
@@ -238,7 +238,7 @@ void BLENativePeripheralSetService(
 }
 
 void BLENativePeripheralAddCharacteristic(
-    BLENativePeripheral *this, char *chastring)
+    BLENativePeripheral *this, const char *chastring)
 {
     NSLog(@"Adding to peripheral %@ characteristic: %s", this, chastring);
 
@@ -260,7 +260,7 @@ void BLENativePeripheralAddCharacteristic(
 }
 
 void BLENativePeripheralRemoveCharacteristic(
-    BLENativePeripheral *this, char *chastrinfg)
+    BLENativePeripheral *this, const char *chastrinfg)
 {
     // XXX TBD
 }

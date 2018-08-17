@@ -25,13 +25,30 @@ typedef CBPeripheral NativePeripheral;
 
 #ifdef __linux__
 
+#include <uthash.h>
 #include "Unity3D_BLENativePeripheral.h"
 
 typedef struct NativeManager BLENativeManager;
 
 typedef void NativeConnection;
 typedef void NativeAdvertisementData;
-typedef void NativePeripheral;
+typedef struct NativePeripheral NativePeripheral;
+
+/* XXX: Convert into a data structure */
+#define BLUEZ_INTERFACE_DEVICE         "org.bluez.Device1"
+#define BLUEZ_INTERFACE_SERVICE        "org.bluez.GattService1"
+#define BLUEZ_INTERFACE_CHARACTERISTIC "org.bluez.Characteristic1"
+
+/* XXX: Convert into a data structure */
+#define BLUEZ_DEVICE_ADDRESS         "Address"
+#define BLUEZ_DEVICE_RSSI            "RSSI"
+#define BLUEZ_DEVICE_SERVICES        "UUIDs"
+
+#define BLUEZ_SERVICE_UUID           "UUID"
+#define BLUEZ_SERVICE_DEVICE         "Device"
+
+#define BLUEZ_CHARACTERISTIC_UUID    "UUID"
+#define BLUEZ_CHARACTERISTIC_SERVICE "Service"
 
 #endif
 

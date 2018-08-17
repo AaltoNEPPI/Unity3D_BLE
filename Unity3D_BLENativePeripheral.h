@@ -26,23 +26,44 @@
 
 #ifdef __linux__
 
-typedef struct {
-    int dummy; // XXX
+typedef struct characteristics {
+    char *uuid;
+    char *path;
+} BLENativeCharacteristic;
+
+typedef struct NativePeripheral {
+    struct NativeManager *manager;
+    char *path;
+    char *name;
+    int rssi;
+    char *service_uuid;
+    char *service_path;
+    int num_characteristics;
+    BLENativeCharacteristic *characteristics;
+    UT_hash_handle hh;
 } BLENativePeripheral;
+
+BLENativePeripheral *BLENativeCreatePeripheralInternal(
+    struct NativeManager *this, const char *path, const char *address, int rssi);
+
+void BLENativePeripheralAddServicePath(
+    const char *device_path, const char *uuid, const char *path);
+void BLENativePeripheralAddCharacteristicPath(
+    const char *service_path, const char *uuid, const char *path);
 
 #endif
 
-BLENativePeripheral *BLENativeCreatePeripheral(void *cbperipheral);
+BLENativePeripheral *BLENativeCreatePeripheral(void *native_peripheral);
 
 void BLENativePeripheralGetIdentifier    (BLENativePeripheral *p, char *identifier, int len);
 void BLENativePeripheralGetName          (BLENativePeripheral *p, char *name, int len);
-void BLENativePeripheralSetService       (BLENativePeripheral *p, char *service);
+void BLENativePeripheralSetService       (BLENativePeripheral *p, const char *service);
 
 void BLENativePeripheralAddCharacteristic(BLENativePeripheral *p,
-					  char *characteristic);
+					  const char *characteristic);
 
 void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
-					  char *characteristic);
+					     const char *characteristic);
 
 void BLENativePeripheralRelease          (BLENativePeripheral *p);
 

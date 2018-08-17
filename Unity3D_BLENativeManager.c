@@ -27,7 +27,9 @@ typedef enum {
 struct NativeManager {
     void *cs_context;
     sd_bus *bus;
-    _Atomic ThreadState state;
+    /*_Atomic XXX*/ ThreadState state;
+    void (*deviceFoundCallback)(
+        void *, NativePeripheral *, NativeAdvertisementData */*XXX*/, long int);
 };
 
 void BLENativeInitLog(void)
@@ -42,24 +44,199 @@ BLENativeManager *BLENativeCreateManager(void)
     return this;
 }
 
-static int deviceCallback(
-    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+static void addPeripheral(
+    BLENativeManager *this, const char *path, const char *address, int rssi)
 {
-    fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
+    if (this->deviceFoundCallback) {
+        BLENativePeripheral *peri =
+            BLENativeCreatePeripheralInternal(this, path, address, rssi);
 
-    assert(reply);
+        this->deviceFoundCallback(
+            this->cs_context,
+            peri,
+            NULL,
+            rssi);
+    }
+}
 
+# define CHECK_RETURN(r) if ((r) < 0) {                                    \
+    fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, (r)); \
+    return r;                                                              \
+  }
+
+/**
+ * XXX
+ *
+ * @param m A message pointing to a dictionary of methods and properties
+ */
+static int addDevice(BLENativeManager *this, const char *path, sd_bus_message *m)
+{
+    int r;
+    const char *address;
+    uint16_t rssi;
+    const char **UUIDs;
+    size_t size;
+
+    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    CHECK_RETURN(r);
+    {
+
+        while ((r = sd_bus_message_enter_container(m, 'e', "sv")) > 0) {
+            const char *property;
+
+            sd_bus_message_read_basic(m, 's', &property);
+            const char *contents;
+            r = sd_bus_message_peek_type(m, "v", &contents);
+            CHECK_RETURN(r);
+
+            if (contents[0] == 's' && !strncmp(BLUEZ_DEVICE_ADDRESS, property, sizeof(BLUEZ_DEVICE_ADDRESS))) {
+                r = sd_bus_message_read_basic(m, contents[0], &address);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      Address=%s\n", address);
+            } else
+            if (contents[0] == 'n' && !strncmp(BLUEZ_DEVICE_RSSI, property, sizeof(BLUEZ_DEVICE_RSSI))) {
+                r = sd_bus_message_read_basic(m, contents[0], &rssi);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      RSSI=%d\n", rssi);
+            } else
+            if (contents[0] == 'a' && !strncmp(BLUEZ_DEVICE_SERVICES, property, sizeof(BLUEZ_DEVICE_SERVICES))) {
+                if ('s' != contents[1]) {
+                    fprintf(stderr, "Unity3D_BLE: %s: parse failed: non-string UUID\n", __func__);
+                    return r;
+                }
+                // XXX: Is the following correct?
+                r = sd_bus_message_read_array(m, 's', (const void **)UUIDs, &size);
+                for (size_t i = 0; i < size; i++) {
+                    fprintf(stderr, "      UUID[%ld]=%s\n", i, UUIDs[i]);
+                }
+            } else {
+                r = sd_bus_message_skip(m, "v");
+            }
+
+            r = sd_bus_message_exit_container(m); // 'e', "sv"
+            CHECK_RETURN(r);
+
+        }
+        CHECK_RETURN(r);
+    }
+    r = sd_bus_message_exit_container(m); // 'a', "{sv}"
+    CHECK_RETURN(r);
+
+    addPeripheral(this, path, address, rssi);
     return 1;
 }
 
-static int parseObjectAddDevice(BLENativeManager *this, sd_bus_message *m)
+/**
+ * XXX
+ *
+ * @param m A message pointing to a dictionary of methods and properties
+ */
+static int addService(BLENativeManager *this, const char *path, sd_bus_message *m)
+{
+    int r;
+    const char *device;
+    const char *uuid;
+
+    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    CHECK_RETURN(r);
+    {
+        while ((r = sd_bus_message_enter_container(m, 'e', "sv")) > 0) {
+            const char *property;
+
+            sd_bus_message_read_basic(m, 's', &property);
+            const char *contents;
+            r = sd_bus_message_peek_type(m, "v", &contents);
+            CHECK_RETURN(r);
+
+            if (contents[0] == 's'
+                && !strncmp(BLUEZ_SERVICE_UUID, property, sizeof(BLUEZ_SERVICE_UUID))) {
+
+                r = sd_bus_message_read_basic(m, contents[0], &uuid);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      UUID=%s\n", uuid);
+
+            } else
+            if (contents[0] == 's'
+                && !strncmp(BLUEZ_SERVICE_DEVICE, property, sizeof(BLUEZ_SERVICE_DEVICE))) {
+
+                r = sd_bus_message_read_basic(m, contents[0], &device);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      Device=%s\n", device);
+
+            } else {
+                r = sd_bus_message_skip(m, "v");
+            }
+            r = sd_bus_message_exit_container(m); // 'e', "sv"
+            CHECK_RETURN(r);
+        }
+        CHECK_RETURN(r);
+
+    }
+    r = sd_bus_message_exit_container(m); // 'a', "{sv}"
+    CHECK_RETURN(r);
+
+    BLENativePeripheralAddServicePath(device, uuid, path);
+    return 1;
+}
+
+/**
+ * XXX
+ *
+ * @param m A message pointing to a dictionary of methods and properties
+ */
+static int addCharacteristic(BLENativeManager *this, const char *path, sd_bus_message *m)
+{
+    int r;
+    const char *service; /* DBUS service path */
+    const char *uuid;
+
+    r = sd_bus_message_enter_container(m, 'a', "{sv}");
+    CHECK_RETURN(r);
+    {
+        while ((r = sd_bus_message_enter_container(m, 'e', "sv")) > 0) {
+            const char *property;
+
+            sd_bus_message_read_basic(m, 's', &property);
+            const char *contents;
+            r = sd_bus_message_peek_type(m, "v", &contents);
+            CHECK_RETURN(r);
+
+            if (contents[0] == 's'
+                && !strncmp(BLUEZ_CHARACTERISTIC_UUID, property, sizeof(BLUEZ_CHARACTERISTIC_UUID))) {
+
+                r = sd_bus_message_read_basic(m, contents[0], &uuid);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      UUID=%s\n", uuid);
+            } else
+            if (contents[0] == 's'
+                && !strncmp(BLUEZ_CHARACTERISTIC_SERVICE, property, sizeof(BLUEZ_CHARACTERISTIC_SERVICE))) {
+
+                r = sd_bus_message_read_basic(m, contents[0], &service);
+                CHECK_RETURN(r);
+                fprintf(stderr, "      Service=%s\n", service);
+
+            } else {
+                r = sd_bus_message_skip(m, "v");
+            }
+            r = sd_bus_message_exit_container(m); // 'e', "sv"
+            CHECK_RETURN(r);
+        }
+        CHECK_RETURN(r);
+
+    }
+    r = sd_bus_message_exit_container(m); // 'a', "{sv}"
+    CHECK_RETURN(r);
+
+    BLENativePeripheralAddCharacteristicPath(service, uuid, path);
+    return 1;
+}
+
+static int parseObjectAddDevice(
+    BLENativeManager *this, sd_bus_message *m)
 {
     int r;
     const char *path;
 
-#   define CHECK_RETURN(r) if ((r) < 0) {                               \
-        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, (r)); \
-    }
     sd_bus_message_read_basic(m, 'o', &path);
 
     fprintf(stderr, "Object %s\n", path);
@@ -74,51 +251,33 @@ static int parseObjectAddDevice(BLENativeManager *this, sd_bus_message *m)
             sd_bus_message_read_basic(m, 's', &interface);
             fprintf(stderr, "  Interface %s\n", interface);
 
-            r = sd_bus_message_enter_container(m, 'a', "{sv}");
-            CHECK_RETURN(r);
-            {
-
-                while ((r = sd_bus_message_enter_container(m, 'e', "sv")) > 0) {
-                    const char *property;
-
-                    sd_bus_message_read_basic(m, 's', &property);
-
-                    /* XXX: Handle the variant contents */
-                    r = sd_bus_message_skip(m, "v");
-
-                    r = sd_bus_message_exit_container(m); // 'e', "sv"
-                    CHECK_RETURN(r);
-                }
-                CHECK_RETURN(r);
-
+            if (!strncmp(BLUEZ_INTERFACE_DEVICE, interface, sizeof(BLUEZ_INTERFACE_DEVICE))) {
+                fprintf(stderr, "    Considering as a device.\n");
+                addDevice(this, path, m);
+            } else
+            if (!strncmp(BLUEZ_INTERFACE_SERVICE, interface, sizeof(BLUEZ_INTERFACE_SERVICE))) {
+                fprintf(stderr, "    Considering as a service.\n");
+                addService(this, path, m);
+            } else
+            if (!strncmp(BLUEZ_INTERFACE_CHARACTERISTIC, interface, sizeof(BLUEZ_INTERFACE_CHARACTERISTIC))) {
+                fprintf(stderr, "    Considering as a characteristic.\n");
+                addCharacteristic(this, path, m);
+            } else {
+                sd_bus_message_skip(m, "a{sv}");
             }
-            r = sd_bus_message_exit_container(m); // 'a', "{sv}"
-            CHECK_RETURN(r);
 
             r = sd_bus_message_exit_container(m); // 'e', "sa{sv}"
             CHECK_RETURN(r);
 
-#define INTERFACE "org.bluez.Device1"
-            if (!strncmp(INTERFACE, interface, sizeof(INTERFACE))) {
-                fprintf(stderr, "    Adding as device.\n");
-
-                r = sd_bus_add_object(
-                    this->bus,
-                    NULL,
-                    path,
-                    deviceCallback,
-                    this);
-                CHECK_RETURN(r);
-            }
         }
         CHECK_RETURN(r);
 
     }
     r = sd_bus_message_exit_container(m); // 'a', "{sa{sv}}"
     CHECK_RETURN(r);
-
-#   undef CHECK_RETURN
+    return 1;
 }
+# undef CHECK_RETURN
 
 static int getManagedObjectsCallback(
     sd_bus_message *reply, void *userdata, sd_bus_error *error)
@@ -202,6 +361,30 @@ static int interfaceAddedInstallCallback(
                 __func__, rerr, sd_bus_message_get_error(reply)->name);
         return -rerr;
     }
+    return 1;
+}
+
+/*
+ * Ask for all existing objects, including already discovered devices
+ */
+void BLENativeGetManagedObjects(BLENativeManager *this)
+{
+    int r;
+    sd_bus_message *m = NULL;
+    r = sd_bus_message_new_method_call(
+        this->bus,
+        &m,
+        "org.bluez",
+        "/",
+        "org.freedesktop.DBus.ObjectManager",
+        "GetManagedObjects");
+    if (r < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call: %d", __func__, r);
+        return;
+    }
+
+    sd_bus_call_async(this->bus, NULL, m, getManagedObjectsCallback, this, 0);
+    sd_bus_message_unref(m);
 }
 
 void BLENativeInitialise(BLENativeManager *this, void *cs_context)
@@ -238,27 +421,16 @@ void BLENativeInitialise(BLENativeManager *this, void *cs_context)
         return;
     }
 
-    // Ask for all existing objects, including already discovered devices
-    sd_bus_message *m = NULL;
-    r = sd_bus_message_new_method_call(
-        this->bus,
-        &m,
-        "org.bluez",
-        "/",
-        "org.freedesktop.DBus.ObjectManager",
-        "GetManagedObjects");
-    if (r < 0) {
-        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call: %d", __func__, r);
-        return;
-    }
-
-    sd_bus_call_async(this->bus, NULL, m, getManagedObjectsCallback, this, 0);
-    sd_bus_message_unref(m);
+    BLENativeGetManagedObjects(this);
 }
 
 void BLENativeDeInitialise(BLENativeManager *this)
 {
     fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
+
+    switch (this->state) {
+        // XXX
+    }
 
     this->cs_context = NULL;
     if (this->bus) {
@@ -297,7 +469,7 @@ void BLENativeScanStart(
         "org.bluez.Adapter1",
         "StartDiscovery");
     if (retval < 0) {
-        perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call", __func__);
         return;
     }
 
@@ -326,7 +498,7 @@ void BLENativeScanStop(BLENativeManager *this)
         "org.bluez.Adapter1",
         "StopDiscovery");
     if (retval < 0) {
-        perror("Unity3D_BLE: BLENativeScanStart: sd_bus_message_new_method_call");
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call", __func__);
         return;
     }
 
