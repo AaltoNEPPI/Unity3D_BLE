@@ -51,6 +51,9 @@ void BLENativePeripheralAddServicePath(
 void BLENativePeripheralAddCharacteristicPath(
     const char *service_path, const char *uuid, const char *path);
 
+/* XXX: Fix module boundary violation */
+void BLENativeGetManagedObjects(struct NativeManager *this);
+
 #endif
 
 BLENativePeripheral *BLENativeCreatePeripheral(void *native_peripheral);

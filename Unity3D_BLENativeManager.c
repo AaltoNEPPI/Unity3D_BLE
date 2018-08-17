@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include "Unity3D_BLENativeManager.h"
 
@@ -59,10 +60,10 @@ static void addPeripheral(
     }
 }
 
-# define CHECK_RETURN(r) if ((r) < 0) {                                    \
-    fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d\n", __func__, (r)); \
-    return r;                                                              \
-  }
+# define CHECK_RETURN(r) if ((r) < 0) { \
+        fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d (L%d)\n", __func__, (r), __LINE__); \
+        return r; \
+    }
 
 /**
  * XXX
@@ -73,7 +74,7 @@ static int addDevice(BLENativeManager *this, const char *path, sd_bus_message *m
 {
     int r;
     const char *address;
-    uint16_t rssi;
+    int16_t rssi;
     const char **UUIDs;
     size_t size;
 
@@ -85,37 +86,52 @@ static int addDevice(BLENativeManager *this, const char *path, sd_bus_message *m
             const char *property;
 
             sd_bus_message_read_basic(m, 's', &property);
+
+            char type;
             const char *contents;
-            r = sd_bus_message_peek_type(m, "v", &contents);
+            r = sd_bus_message_peek_type(m, &type, &contents);
             CHECK_RETURN(r);
 
-            if (contents[0] == 's' && !strncmp(BLUEZ_DEVICE_ADDRESS, property, sizeof(BLUEZ_DEVICE_ADDRESS))) {
-                r = sd_bus_message_read_basic(m, contents[0], &address);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      Address=%s\n", address);
-            } else
-            if (contents[0] == 'n' && !strncmp(BLUEZ_DEVICE_RSSI, property, sizeof(BLUEZ_DEVICE_RSSI))) {
-                r = sd_bus_message_read_basic(m, contents[0], &rssi);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      RSSI=%d\n", rssi);
-            } else
-            if (contents[0] == 'a' && !strncmp(BLUEZ_DEVICE_SERVICES, property, sizeof(BLUEZ_DEVICE_SERVICES))) {
-                if ('s' != contents[1]) {
-                    fprintf(stderr, "Unity3D_BLE: %s: parse failed: non-string UUID\n", __func__);
-                    return r;
-                }
-                // XXX: Is the following correct?
-                r = sd_bus_message_read_array(m, 's', (const void **)UUIDs, &size);
-                for (size_t i = 0; i < size; i++) {
-                    fprintf(stderr, "      UUID[%ld]=%s\n", i, UUIDs[i]);
-                }
-            } else {
-                r = sd_bus_message_skip(m, "v");
+            if ('v' != type) {
+                fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d (L%d)\n", __func__, (r), __LINE__); \
+                return -EBADMSG;
             }
+
+            r = sd_bus_message_enter_container(m, 'v', contents);
+            CHECK_RETURN(r);
+            {
+                if (contents[0] == 's' && !strncmp(BLUEZ_DEVICE_ADDRESS, property, sizeof(BLUEZ_DEVICE_ADDRESS))) {
+                    r = sd_bus_message_read_basic(m, contents[0], &address);
+                    CHECK_RETURN(r);
+                    fprintf(stderr, "      Address=%s\n", address);
+                } else
+                if (contents[0] == 'n' && !strncmp(BLUEZ_DEVICE_RSSI, property, sizeof(BLUEZ_DEVICE_RSSI))) {
+		    r = sd_bus_message_read_basic(m, contents[0], &rssi);
+		    CHECK_RETURN(r);
+		    fprintf(stderr, "      RSSI=%d\n", rssi);
+#if 0
+		} else
+ 	        // Something below is not correct, causes a core dump
+                if (contents[0] == 'a' && !strncmp(BLUEZ_DEVICE_SERVICES, property, sizeof(BLUEZ_DEVICE_SERVICES))) {
+		    if ('s' != contents[1]) {
+			fprintf(stderr, "Unity3D_BLE: %s: parse failed: non-string UUID\n", __func__);
+			return r;
+		    }
+		    // XXX: Is the following correct?
+		    r = sd_bus_message_read_array(m, 's', (const void **)UUIDs, &size);
+		    for (size_t i = 0; i < size; i++) {
+			fprintf(stderr, "      UUID[%ld]=%s\n", i, UUIDs[i]);
+		    }
+#endif
+		} else {
+		    r = sd_bus_message_skip(m, contents);
+		}
+            }
+            r = sd_bus_message_exit_container(m); // 'v', contents
+            CHECK_RETURN(r);
 
             r = sd_bus_message_exit_container(m); // 'e', "sv"
             CHECK_RETURN(r);
-
         }
         CHECK_RETURN(r);
     }
@@ -144,28 +160,40 @@ static int addService(BLENativeManager *this, const char *path, sd_bus_message *
             const char *property;
 
             sd_bus_message_read_basic(m, 's', &property);
+            char type;
             const char *contents;
-            r = sd_bus_message_peek_type(m, "v", &contents);
+            r = sd_bus_message_peek_type(m, &type, &contents);
             CHECK_RETURN(r);
 
-            if (contents[0] == 's'
-                && !strncmp(BLUEZ_SERVICE_UUID, property, sizeof(BLUEZ_SERVICE_UUID))) {
-
-                r = sd_bus_message_read_basic(m, contents[0], &uuid);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      UUID=%s\n", uuid);
-
-            } else
-            if (contents[0] == 's'
-                && !strncmp(BLUEZ_SERVICE_DEVICE, property, sizeof(BLUEZ_SERVICE_DEVICE))) {
-
-                r = sd_bus_message_read_basic(m, contents[0], &device);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      Device=%s\n", device);
-
-            } else {
-                r = sd_bus_message_skip(m, "v");
+            if ('v' != type) {
+                fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d (L%d)\n", __func__, (r), __LINE__); \
+                return -EBADMSG;
             }
+
+            r = sd_bus_message_enter_container(m, 'v', contents);
+            CHECK_RETURN(r);
+            {
+		if (contents[0] == 's'
+		    && !strncmp(BLUEZ_SERVICE_UUID, property, sizeof(BLUEZ_SERVICE_UUID))) {
+
+		    r = sd_bus_message_read_basic(m, contents[0], &uuid);
+		    CHECK_RETURN(r);
+		    fprintf(stderr, "      UUID=%s\n", uuid);
+
+		} else
+                if (contents[0] == 's'
+		    && !strncmp(BLUEZ_SERVICE_DEVICE, property, sizeof(BLUEZ_SERVICE_DEVICE))) {
+
+		    r = sd_bus_message_read_basic(m, contents[0], &device);
+		    CHECK_RETURN(r);
+		    fprintf(stderr, "      Device=%s\n", device);
+		} else {
+		    r = sd_bus_message_skip(m, contents);
+		}
+            }
+            r = sd_bus_message_exit_container(m); // 'v', contents
+            CHECK_RETURN(r);
+
             r = sd_bus_message_exit_container(m); // 'e', "sv"
             CHECK_RETURN(r);
         }
@@ -197,27 +225,39 @@ static int addCharacteristic(BLENativeManager *this, const char *path, sd_bus_me
             const char *property;
 
             sd_bus_message_read_basic(m, 's', &property);
+            char type;
             const char *contents;
-            r = sd_bus_message_peek_type(m, "v", &contents);
+            r = sd_bus_message_peek_type(m, &type, &contents);
             CHECK_RETURN(r);
 
-            if (contents[0] == 's'
-                && !strncmp(BLUEZ_CHARACTERISTIC_UUID, property, sizeof(BLUEZ_CHARACTERISTIC_UUID))) {
-
-                r = sd_bus_message_read_basic(m, contents[0], &uuid);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      UUID=%s\n", uuid);
-            } else
-            if (contents[0] == 's'
-                && !strncmp(BLUEZ_CHARACTERISTIC_SERVICE, property, sizeof(BLUEZ_CHARACTERISTIC_SERVICE))) {
-
-                r = sd_bus_message_read_basic(m, contents[0], &service);
-                CHECK_RETURN(r);
-                fprintf(stderr, "      Service=%s\n", service);
-
-            } else {
-                r = sd_bus_message_skip(m, "v");
+            if ('v' != type) {
+                fprintf(stderr, "Unity3D_BLE: %s: parse failed: %d (L%d)\n", __func__, (r), __LINE__); \
+                return -EBADMSG;
             }
+
+            r = sd_bus_message_enter_container(m, 'v', contents);
+            CHECK_RETURN(r);
+            {
+		if (contents[0] == 's'
+		    && !strncmp(BLUEZ_CHARACTERISTIC_UUID, property, sizeof(BLUEZ_CHARACTERISTIC_UUID))) {
+
+		    r = sd_bus_message_read_basic(m, contents[0], &uuid);
+		    CHECK_RETURN(r);
+		    fprintf(stderr, "      UUID=%s\n", uuid);
+		} else
+	        if (contents[0] == 's'
+		    && !strncmp(BLUEZ_CHARACTERISTIC_SERVICE, property, sizeof(BLUEZ_CHARACTERISTIC_SERVICE))) {
+
+		    r = sd_bus_message_read_basic(m, contents[0], &service);
+		    CHECK_RETURN(r);
+		    fprintf(stderr, "      Service=%s\n", service);
+		} else {
+		    r = sd_bus_message_skip(m, contents);
+		}
+            }
+            r = sd_bus_message_exit_container(m); // 'v', contents
+            CHECK_RETURN(r);
+
             r = sd_bus_message_exit_container(m); // 'e', "sv"
             CHECK_RETURN(r);
         }
@@ -420,8 +460,6 @@ void BLENativeInitialise(BLENativeManager *this, void *cs_context)
         fprintf(stderr, "Unity3D_BLE: %s: sd_bus_match_signal_async: %d", __func__, r);
         return;
     }
-
-    BLENativeGetManagedObjects(this);
 }
 
 void BLENativeDeInitialise(BLENativeManager *this)
@@ -461,6 +499,10 @@ void BLENativeScanStart(
 {
     sd_bus_message *m = NULL;
 
+    this->deviceFoundCallback = callback;
+
+    BLENativeGetManagedObjects(this);
+    
     const int retval = sd_bus_message_new_method_call(
         this->bus,
         &m,
@@ -480,7 +522,11 @@ void BLENativeScanStart(
 static int stopDiscoveryCallback(
     sd_bus_message *reply, void *userdata, sd_bus_error *error)
 {
+    BLENativeManager *this = userdata;
+
     fprintf(stderr, "Unity3D_BLE: %s.\n", __func__);
+
+    this->deviceFoundCallback = NULL;
 
     assert(reply);
 
