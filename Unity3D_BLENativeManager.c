@@ -554,15 +554,60 @@ void BLENativeScanStop(BLENativeManager *this)
     sd_bus_message_unref(m);
 }
 
+static int connectCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    BLENativePeripheral *this = userdata;
+
+    fprintf(stderr, "Unity3D_BLE: %s: Connected to %s\n",
+	    __func__, this->address);
+
+    return 1;
+}
+
 NativeConnection *BLENativeConnect(
     BLENativeManager *this, BLENativePeripheral *p)
 {
+    sd_bus_message *m = NULL;
+
+    const int retval = sd_bus_message_new_method_call(
+        this->bus,
+        &m,
+        "org.bluez",
+	p->path,
+        "org.bluez.Device1",
+        "ConnectProfile");
+    // XXX: Add profile
+    if (retval < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call", __func__);
+        return p;
+    }
+
+    sd_bus_call_async(this->bus, NULL, m, connectCallback, p, 0);
+    sd_bus_message_unref(m);
+
     return (void*)0;
 }
 
 void BLENativeDisconnect(
     BLENativeManager *this, NativeConnection *c)
 {
+    sd_bus_message *m = NULL;
+
+    const int retval = sd_bus_message_new_method_call(
+        this->bus,
+        &m,
+        "org.bluez",
+	p->path,
+        "org.bluez.Device1",
+        "Disconnect");
+    if (retval < 0) {
+        fprintf(stderr, "Unity3D_BLE: %s: sd_bus_message_new_method_call", __func__);
+	return;
+    }
+
+    sd_bus_call_async(this->bus, NULL, m, connectCallback, p, 0);
+    sd_bus_message_unref(m);
 }
 
 void BLENativeDisconnectAll(BLENativeManager *this)
