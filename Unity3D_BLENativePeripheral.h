@@ -34,6 +34,7 @@ typedef struct characteristics {
 typedef struct NativePeripheral {
     struct NativeManager *manager;
     char *path;
+    char *address;
     char *name;
     int rssi;
     char *service_uuid;

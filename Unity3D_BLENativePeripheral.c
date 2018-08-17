@@ -6,6 +6,7 @@
  */
 
 #include <assert.h>
+#include <stdio.h>
 
 #include "uthash.h"
 #include "Unity3D_BLENativePeripheral.h"
@@ -19,12 +20,15 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
     assert(this);
     this->manager = manager;
     this->path = strdup(path);
-    this->name = strdup(address);
+    this->address = strdup(address);
+    this->name = NULL;
     this->rssi = rssi;
     this->service_uuid = NULL;
+    this->service_path = NULL;
     this->num_characteristics = 0;
     this->characteristics = NULL;
     HASH_ADD_STR(peripherals, path, this);
+    fprintf(stderr, "Constructing NativePeripheral %p\n", this);
     return this;
 }
 
@@ -36,27 +40,38 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
  */
 BLENativePeripheral *BLENativeCreatePeripheral(void *this)
 {
+    fprintf(stderr, "Retaining NativePeripheral %p\n", this);
     return this;
 }
 
 void BLENativePeripheralRelease(BLENativePeripheral *this)
 {
     assert(this);
+    fprintf(stderr, "Releasing NativePeripheral %p\n", this);
     HASH_DEL(peripherals, this);
     this->manager = NULL;
     if (this->path) {
+	fprintf(stderr, "Releasing path %s\n", this->path);
         free(this->path);
         this->path = NULL;
     }
+    if (this->address) {
+	fprintf(stderr, "Releasing address %s\n", this->address);
+        free(this->address);
+        this->address = NULL;
+    }
     if (this->name) {
+	fprintf(stderr, "Releasing name %s\n", this->name);
         free(this->name);
         this->name = NULL;
     }
     if (this->service_uuid) {
+	fprintf(stderr, "Releasing service_uuid %s\n", this->service_uuid);
         free(this->service_uuid);
         this->service_uuid = NULL;
     }
     if (this->service_path) {
+	fprintf(stderr, "Releasing service_path %s\n", this->service_path);
         free(this->service_path);
         this->service_path = NULL;
     }
@@ -65,25 +80,29 @@ void BLENativePeripheralRelease(BLENativePeripheral *this)
         for (int i = 0; i < this->num_characteristics; i++) {
             BLENativeCharacteristic *c = &this->characteristics[i];
             if (c->uuid) {
+		fprintf(stderr, "Releasing characteristic uuid %s\n", c->uuid);
                 free(c->uuid);
                 c->uuid = NULL;
             }
             if (c->path) {
+		fprintf(stderr, "Releasing characteristic path %s\n", c->path);
                 free(c->path);
                 c->path = NULL;
             }
         }
         this->num_characteristics = 0;
+	fprintf(stderr, "Releasing characteristics %p\n", this->characteristics);
         free(this->characteristics);
         this->characteristics = NULL;
     }
     assert(NULL == this->characteristics);
     free(this);
+    fprintf(stderr, "Releasing NativePeripheral %p....done.\n", this);
 }
 
 void BLENativePeripheralGetIdentifier(BLENativePeripheral *this, char *identifier, int len)
 {
-    strncpy(identifier, this->path, len);
+    strncpy(identifier, this->address, len);
 }
 
 void BLENativePeripheralGetName(BLENativePeripheral *this, char *name, int len)
@@ -113,7 +132,7 @@ void BLENativePeripheralAddServicePath(
     BLENativePeripheral *this;
 
     HASH_FIND_STR(peripherals, device_path, this);
-    if (!this)
+    if (!this || this->service_uuid)
         return;
     if (0 != strcmp(this->service_uuid, uuid))
         return;
@@ -160,10 +179,7 @@ void BLENativePeripheralAddCharacteristicPath(
     HASH_FIND_STR(peripherals, device_path, this);
     free(device_path);
 
-    if (!this)
-        return;
-
-    if (!this->service_path)
+    if (!this || !this->service_path)
         return;
 
     if (0 != strcmp(this->service_path, service_path))

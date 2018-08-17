@@ -52,6 +52,8 @@ static void addPeripheral(
         BLENativePeripheral *peri =
             BLENativeCreatePeripheralInternal(this, path, address, rssi);
 
+	fprintf(stderr, "Calling deviceFoundCallback for %s\n", address);
+
         this->deviceFoundCallback(
             this->cs_context,
             peri,
