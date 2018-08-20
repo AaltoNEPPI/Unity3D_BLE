@@ -71,4 +71,11 @@ void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
 
 void BLENativePeripheralRelease          (BLENativePeripheral *p);
 
+#ifdef __linux__
+// XXX Fix module boundary violation
+typedef struct NativeManager BLENativeManager;
+void BLENativeSubscribeToCharacteristic(
+    BLENativeManager *this, const char *path, BLENativePeripheral *peri);
+#endif
+
 #endif /* Unity3D_BLENativePeripheral_h */

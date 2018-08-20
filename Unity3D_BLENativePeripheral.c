@@ -199,6 +199,9 @@ void BLENativePeripheralAddCharacteristicPath(
         }
 
         c->path = strdup(path);
+
+	BLENativeSubscribeToCharacteristic(this->manager, path, this);
+
         return;
     }
 }

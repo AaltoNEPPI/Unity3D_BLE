@@ -40,15 +40,16 @@ typedef struct NativePeripheral NativePeripheral;
 #define BLUEZ_INTERFACE_CHARACTERISTIC "org.bluez.Characteristic1"
 
 /* XXX: Convert into a data structure */
-#define BLUEZ_DEVICE_ADDRESS         "Address"
-#define BLUEZ_DEVICE_RSSI            "RSSI"
-#define BLUEZ_DEVICE_SERVICES        "UUIDs"
+#define BLUEZ_DEVICE_ADDRESS  "Address"
+#define BLUEZ_DEVICE_RSSI     "RSSI"
+#define BLUEZ_DEVICE_SERVICES "UUIDs"
 
-#define BLUEZ_SERVICE_UUID           "UUID"
-#define BLUEZ_SERVICE_DEVICE         "Device"
+#define BLUEZ_SERVICE_UUID    "UUID"
+#define BLUEZ_SERVICE_DEVICE  "Device"
 
-#define BLUEZ_CHARACTERISTIC_UUID    "UUID"
-#define BLUEZ_CHARACTERISTIC_SERVICE "Service"
+#define BLUEZ_CHARACT_UUID    "UUID"
+#define BLUEZ_CHARACT_SERVICE "Service"
+#define BLUEZ_CHARACT_VALUE   "Value"
 
 #endif
 
