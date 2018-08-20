@@ -76,6 +76,28 @@ typedef struct {
 } DBUSProperty;
 
 /**
+ * Test if the type is suitable for sd_bus_message_read_array
+ *
+ * Copied from systemd/src/libsystemd/sd-bus/bus-type.c, where
+ * this is but not public.  Silly.  XXX FIXME.
+ */
+static int bus_type_is_trivial(char c) {
+        static const char valid[] = {
+                SD_BUS_TYPE_BYTE,
+                SD_BUS_TYPE_BOOLEAN,
+                SD_BUS_TYPE_INT16,
+                SD_BUS_TYPE_UINT16,
+                SD_BUS_TYPE_INT32,
+                SD_BUS_TYPE_UINT32,
+                SD_BUS_TYPE_INT64,
+                SD_BUS_TYPE_UINT64,
+                SD_BUS_TYPE_DOUBLE
+        };
+
+        return !!memchr(valid, c, sizeof(valid));
+}
+
+/**
  * Read properties from a dictionary of {name,value} pairs,
  * where the values are variadic but know by the property name
  */
@@ -115,8 +137,6 @@ static int readProperties(
                     continue;
 
                 switch (type) {
-                    extern int bus_type_is_trivial(char c); // XXX
-
                 case SD_BUS_TYPE_ARRAY:
                     if (bus_type_is_trivial(contents[1])) {
                         size_t size; // XXX
