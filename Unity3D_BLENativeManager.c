@@ -65,6 +65,8 @@ static void addPeripheral(
             peri,
             NULL,
             rssi);
+    } else {
+	fprintf(stderr, "NULL deviceFoundCallback for %s\n", address);
     }
 }
 
@@ -102,7 +104,7 @@ static int bus_type_is_trivial(char c) {
  * where the values are variadic but know by the property name
  */
 static int readProperties(
-    sd_bus_message *m, const DBUSProperty *properties, size_t count)
+    sd_bus_message *m, const DBUSProperty *properties, const size_t count)
 {
     int r;
 
@@ -128,7 +130,11 @@ static int readProperties(
 
             r = sd_bus_message_enter_container(m, 'v', contents);
             CHECK_RETURN(r);
-            for (int i = 0; i < count; i++) {
+
+	    fprintf(stderr, "      Looking at property %s (%s)\n", property, contents);
+
+	    int i;
+            for (i = 0; i < count; i++) {
                 const char type = contents[0];
 
                 if (type != properties[i].type[0])
@@ -160,13 +166,25 @@ static int readProperties(
                 CHECK_RETURN(r);
 
                 switch (type) {
-                case 's': fprintf(stderr, "      %s=%s\n",
-                                  properties[i].name,
-                                  (char *)properties[i].valuep);
-                default:  fprintf(stderr, "      %s=???\n",
-                                  properties[i].name);
+                case 's':
+		    fprintf(stderr, "      %s=%s\n", properties[i].name,
+			    *(char **)properties[i].valuep);
+		    break;
+                case 'n':
+		    fprintf(stderr, "      %s=%d\n", properties[i].name,
+			    *(int *)properties[i].valuep);
+		    break;
+                default:
+		    fprintf(stderr, "      %s=???\n", properties[i].name);
+		    break;
                 }
+		break;
             }
+	    /* If the caller is not interested, just skip */
+	    if (count == i) {
+		r = sd_bus_message_skip(m, contents);
+		CHECK_RETURN(r);
+	    }
             r = sd_bus_message_exit_container(m); // 'v', contents
             CHECK_RETURN(r);
 
@@ -587,7 +605,18 @@ NativeConnection *BLENativeConnect(
     sd_bus_call_async(this->bus, NULL, m, connectCallback, p, 0);
     sd_bus_message_unref(m);
 
-    return (void*)0;
+    return p;
+}
+
+static int disconnectCallback(
+    sd_bus_message *reply, void *userdata, sd_bus_error *error)
+{
+    BLENativePeripheral *this = userdata;
+
+    fprintf(stderr, "Unity3D_BLE: %s: Disconnected from %s\n",
+            __func__, this->address);
+
+    return 1;
 }
 
 void BLENativeDisconnect(
@@ -608,7 +637,7 @@ void BLENativeDisconnect(
         return;
     }
 
-    sd_bus_call_async(this->bus, NULL, m, connectCallback, p, 0);
+    sd_bus_call_async(this->bus, NULL, m, disconnectCallback, p, 0);
     sd_bus_message_unref(m);
 }
 
