@@ -37,7 +37,7 @@ typedef struct NativePeripheral NativePeripheral;
 /* XXX: Convert into a data structure */
 #define BLUEZ_INTERFACE_DEVICE         "org.bluez.Device1"
 #define BLUEZ_INTERFACE_SERVICE        "org.bluez.GattService1"
-#define BLUEZ_INTERFACE_CHARACTERISTIC "org.bluez.Characteristic1"
+#define BLUEZ_INTERFACE_CHARACTERISTIC "org.bluez.GattCharacteristic1"
 
 /* XXX: Convert into a data structure */
 #define BLUEZ_DEVICE_ADDRESS  "Address"
@@ -53,16 +53,11 @@ typedef struct NativePeripheral NativePeripheral;
 
 #endif
 
-typedef void BLENativeScanDeviceFoundCallback(
+typedef void (*BLENativeScanDeviceFoundCallback)(
     void *cs_context,
     NativePeripheral *cbp,
     NativeAdvertisementData *add/*XXX*/,
     long int RSSI);
-
-typedef void BLENativeSubscribeDataCallback(
-    void *cs_context,
-    void *dataTBD/*XXX*/);
-
 
 void BLENativeInitLog(void);
 
@@ -82,7 +77,7 @@ void BLENativeDeInitialise (BLENativeManager *this);
 
 void BLENativeScanStart    (BLENativeManager *this,
 			    const char *serviceUUID,
-			    BLENativeScanDeviceFoundCallback *callback);
+			    BLENativeScanDeviceFoundCallback callback);
 
 void BLENativeScanStop     (BLENativeManager *this);
 

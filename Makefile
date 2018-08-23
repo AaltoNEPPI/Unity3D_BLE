@@ -38,6 +38,6 @@ clean:
 	rm -f $(TARGETS) $(OBJS)
 
 # XXX Silly, FIXME
-install: $(TARGETS)
-	rm -f ../$(TARGETS)
-	cp $(TARGETS) ../$(TARGETS)
+install: $(PLUGIN)
+	rm -f ../$(PLUGIN)
+	cp $(PLUGIN) ../$(PLUGIN)

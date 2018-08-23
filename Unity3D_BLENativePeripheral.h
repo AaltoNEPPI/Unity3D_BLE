@@ -8,6 +8,8 @@
 #ifndef Unity3D_BLENativePeripheral_h
 #define Unity3D_BLENativePeripheral_h
 
+typedef void (*BLENativeCharacteristicUpdatedCallback)(const char *uuid, const void *data);
+
 #ifdef __APPLE__
 
 #import <CoreBluetooth/CoreBluetooth.h>
@@ -15,7 +17,7 @@
 @interface BLENativePeripheral : NSObject {
 @public
     CBPeripheral *cbperipheral;
-    void (*subscribeDataCallback)(void *, void */*XXX*/);
+    BLENativeCharacteristicUpdatedCallback subscribeDataCallback;
     CBUUID *service; // XXX Only one service?
     CBService *cbservice;
     NSMutableArray<CBUUID *> *characteristics;
@@ -29,6 +31,8 @@
 typedef struct characteristics {
     char *uuid;
     char *path;
+    BLENativeCharacteristicUpdatedCallback callback;
+    UT_hash_handle hh;
 } BLENativeCharacteristic;
 
 typedef struct NativePeripheral {
@@ -42,6 +46,7 @@ typedef struct NativePeripheral {
     int num_characteristics;
     BLENativeCharacteristic *characteristics;
     UT_hash_handle hh;
+    int references;
 } BLENativePeripheral;
 
 BLENativePeripheral *BLENativeCreatePeripheralInternal(
@@ -64,7 +69,8 @@ void BLENativePeripheralGetName          (BLENativePeripheral *p, char *name, in
 void BLENativePeripheralSetService       (BLENativePeripheral *p, const char *service);
 
 void BLENativePeripheralAddCharacteristic(BLENativePeripheral *p,
-					  const char *characteristic);
+					  const char *characteristic,
+					  BLENativeCharacteristicUpdatedCallback callback);
 
 void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
 					     const char *characteristic);
@@ -72,10 +78,14 @@ void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
 void BLENativePeripheralRelease          (BLENativePeripheral *p);
 
 #ifdef __linux__
+
 // XXX Fix module boundary violation
-typedef struct NativeManager BLENativeManager;
 void BLENativeSubscribeToCharacteristic(
-    BLENativeManager *this, const char *path, BLENativePeripheral *peri);
+    struct NativeManager *this, const char *path, BLENativePeripheral *peri);
+
+void BLENativeNotifyCharacteristic(
+    const char *characteristic_path, const void *valuep);
+
 #endif
 
 #endif /* Unity3D_BLENativePeripheral_h */

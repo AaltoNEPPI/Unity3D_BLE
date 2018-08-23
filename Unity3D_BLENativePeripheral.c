@@ -12,23 +12,34 @@
 #include "Unity3D_BLENativePeripheral.h"
 
 BLENativePeripheral *peripherals = NULL;
+BLENativeCharacteristic *characteristics = NULL;
 
 BLENativePeripheral *BLENativeCreatePeripheralInternal(
     struct NativeManager *manager, const char *path, const char *address, int rssi)
 {
-    BLENativePeripheral *this = malloc(sizeof(BLENativePeripheral));
+    BLENativePeripheral *this = NULL;
+
+    HASH_FIND_STR(peripherals, path, this);
+    if (!this) {
+	this = malloc(sizeof(BLENativePeripheral));
+	assert(this);
+	memset(this, 0, sizeof(this));
+	/* Redundant... */
+	this->manager = manager;
+	this->path = strdup(path);
+	this->address = strdup(address);
+	this->name = NULL;
+	this->service_uuid = NULL;
+	this->service_path = NULL;
+	this->num_characteristics = 0;
+	this->characteristics = NULL;
+	HASH_ADD_STR(peripherals, path, this);
+	// fprintf(stderr, "Constructing NativePeripheral %p\n", this);
+    }
     assert(this);
-    this->manager = manager;
-    this->path = strdup(path);
-    this->address = strdup(address);
-    this->name = NULL;
+    assert(0 == strcmp(this->path, path));
+    assert(0 == strcmp(this->address, address));
     this->rssi = rssi;
-    this->service_uuid = NULL;
-    this->service_path = NULL;
-    this->num_characteristics = 0;
-    this->characteristics = NULL;
-    HASH_ADD_STR(peripherals, path, this);
-    fprintf(stderr, "Constructing NativePeripheral %p\n", this);
     return this;
 }
 
@@ -38,40 +49,41 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
  * Called by the C# runtime system to "convert" the type from
  * an IntPtr to a SafeHandle subclass.
  */
-BLENativePeripheral *BLENativeCreatePeripheral(void *this)
+BLENativePeripheral *BLENativeCreatePeripheral(void *p)
 {
-    fprintf(stderr, "Retaining NativePeripheral %p\n", this);
+    BLENativePeripheral *this = p;
+
+    // fprintf(stderr, "Retaining NativePeripheral %p\n", this);
+    this->references++;
     return this;
 }
 
 void BLENativePeripheralRelease(BLENativePeripheral *this)
 {
     assert(this);
-    fprintf(stderr, "Releasing NativePeripheral %p\n", this);
+    if (--(this->references) > 0)
+	return;
+
+    // fprintf(stderr, "Releasing NativePeripheral %p\n", this);
     HASH_DEL(peripherals, this);
     this->manager = NULL;
     if (this->path) {
-	fprintf(stderr, "Releasing path %s\n", this->path);
         free(this->path);
         this->path = NULL;
     }
     if (this->address) {
-	fprintf(stderr, "Releasing address %s\n", this->address);
         free(this->address);
         this->address = NULL;
     }
     if (this->name) {
-	fprintf(stderr, "Releasing name %s\n", this->name);
         free(this->name);
         this->name = NULL;
     }
     if (this->service_uuid) {
-	fprintf(stderr, "Releasing service_uuid %s\n", this->service_uuid);
         free(this->service_uuid);
         this->service_uuid = NULL;
     }
     if (this->service_path) {
-	fprintf(stderr, "Releasing service_path %s\n", this->service_path);
         free(this->service_path);
         this->service_path = NULL;
     }
@@ -80,24 +92,20 @@ void BLENativePeripheralRelease(BLENativePeripheral *this)
         for (int i = 0; i < this->num_characteristics; i++) {
             BLENativeCharacteristic *c = &this->characteristics[i];
             if (c->uuid) {
-		fprintf(stderr, "Releasing characteristic uuid %s\n", c->uuid);
                 free(c->uuid);
                 c->uuid = NULL;
             }
             if (c->path) {
-		fprintf(stderr, "Releasing characteristic path %s\n", c->path);
                 free(c->path);
                 c->path = NULL;
             }
         }
         this->num_characteristics = 0;
-	fprintf(stderr, "Releasing characteristics %p\n", this->characteristics);
         free(this->characteristics);
         this->characteristics = NULL;
     }
     assert(NULL == this->characteristics);
     free(this);
-    fprintf(stderr, "Releasing NativePeripheral %p....done.\n", this);
 }
 
 void BLENativePeripheralGetIdentifier(BLENativePeripheral *this, char *identifier, int len)
@@ -132,10 +140,18 @@ void BLENativePeripheralAddServicePath(
     BLENativePeripheral *this;
 
     HASH_FIND_STR(peripherals, device_path, this);
-    if (!this || this->service_uuid)
+    if (!this) {
+	fprintf(stderr, "AddServicePath: device not found: %s\n", device_path);
         return;
-    if (0 != strcmp(this->service_uuid, uuid))
+    }
+    if (!this->service_uuid) {
+	fprintf(stderr, "AddServicePath: device has no service: %s\n", device_path);
         return;
+    }
+    if (0 != strcmp(this->service_uuid, uuid)) {
+	fprintf(stderr, "AddServicePath: uuid mismatch: %s\n", this->service_uuid);
+        return;
+    }
 
     if (this->service_path) {
         free(this->service_path);
@@ -145,7 +161,9 @@ void BLENativePeripheralAddServicePath(
 }
 
 void BLENativePeripheralAddCharacteristic(
-    BLENativePeripheral *this, const char *characteristic)
+    BLENativePeripheral *this,
+    const char *characteristic,
+    BLENativeCharacteristicUpdatedCallback callback)
 {
     for (int i = 0; i < this->num_characteristics; i++) {
         BLENativeCharacteristic *c = &this->characteristics[i];
@@ -157,8 +175,11 @@ void BLENativePeripheralAddCharacteristic(
     BLENativeCharacteristic *new_c
         = realloc(this->characteristics, (this->num_characteristics+1) * sizeof(BLENativeCharacteristic));
     assert(new_c);
-    new_c[this->num_characteristics++].uuid = strdup(characteristic);
-    new_c[this->num_characteristics++].path = NULL;
+    memset(new_c + this->num_characteristics, 0, sizeof(new_c[this->num_characteristics]));
+    new_c[this->num_characteristics].uuid = strdup(characteristic);
+    new_c[this->num_characteristics].path = NULL;
+    new_c[this->num_characteristics].callback = callback;
+    this->num_characteristics++;
     this->characteristics = new_c;
 
     if (this->path) {
@@ -185,24 +206,52 @@ void BLENativePeripheralAddCharacteristicPath(
     if (0 != strcmp(this->service_path, service_path))
         return;
 
+    fprintf(stderr, "AddCharacteristicPath: considering %s, n=%d\n", uuid,
+	this->num_characteristics);
+
     for (int i = 0; i < this->num_characteristics; i++) {
         BLENativeCharacteristic *c = &this->characteristics[i];
 
-        if (NULL != c->uuid)
+        assert(NULL != c->uuid);
+        if (0 != strcmp(c->uuid, uuid)) {
+	    fprintf(stderr, "AddCharacteristicPath: mismatch %d %s\n", i, c->uuid);
             continue;
-        if (0 != strcmp(c->uuid, uuid))
-            continue;
+	}
+
+	fprintf(stderr, "AddChacteristicPath: found %s\n", uuid);
 
         if (NULL != c->path) {
+	    if (0 == strcmp(c->path, path)) {
+		fprintf(stderr, "AddCharacteristicPath: already subscribed %s\n", uuid);
+		return;
+	    }
             free(c->path);
             c->path = NULL;
         }
 
         c->path = strdup(path);
 
-	BLENativeSubscribeToCharacteristic(this->manager, path, this);
+	HASH_ADD_STR(characteristics, path, c);
+
+	fprintf(stderr, "AddCharacteristicPath: subscribing to %s\n", uuid);
+	BLENativeSubscribeToCharacteristic(this->manager, c->path, this);
 
         return;
+    }
+}
+
+void BLENativeNotifyCharacteristic(
+    const char *characteristic_path,
+    const void *valuep)
+{
+    BLENativeCharacteristic *c;
+
+    HASH_FIND_STR(characteristics, characteristic_path, c);
+
+    fprintf(stderr, "%s: path=%s, uuid=%s\n", __func__, characteristic_path, c->uuid);
+
+    if (c->callback) {
+	c->callback(c->uuid, valuep);
     }
 }
 
@@ -216,6 +265,15 @@ void BLENativePeripheralRemoveCharacteristic(
             continue;
         if (0 != strcmp(c->uuid, characteristic))
             continue;
+
+	assert(c->uuid);
+	free(c->uuid);
+
+	if (c->path) {
+	    HASH_DEL(characteristics, c);
+	    free(c->path);
+	    c->path = NULL;
+	}
 
         // XXX: Is this correct?
         memmove(c+1, c, sizeof(c[0])*(this->num_characteristics - (c - this->characteristics)));

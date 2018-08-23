@@ -29,8 +29,7 @@ struct NativeManager {
     void *cs_context;
     sd_bus *bus;
     /*_Atomic XXX*/ ThreadState state;
-    void (*deviceFoundCallback)(
-        void *, NativePeripheral *, NativeAdvertisementData */*XXX*/, long int);
+    BLENativeScanDeviceFoundCallback deviceFoundCallback;
 };
 
 # define CHECK_RETURN(r) if ((r) < 0) { \
@@ -58,7 +57,7 @@ static void addPeripheral(
         BLENativePeripheral *peri =
             BLENativeCreatePeripheralInternal(this, path, address, rssi);
 
-        fprintf(stderr, "Calling deviceFoundCallback for %s\n", address);
+        // fprintf(stderr, "Calling deviceFoundCallback for %s\n", address);
 
         this->deviceFoundCallback(
             this->cs_context,
@@ -131,8 +130,6 @@ static int readProperties(
             r = sd_bus_message_enter_container(m, 'v', contents);
             CHECK_RETURN(r);
 
-	    fprintf(stderr, "      Looking at property %s (%s)\n", property, contents);
-
 	    int i;
             for (i = 0; i < count; i++) {
                 const char type = contents[0];
@@ -156,7 +153,8 @@ static int readProperties(
                 case SD_BUS_TYPE_STRUCT_BEGIN:
                 case SD_BUS_TYPE_DICT_ENTRY_BEGIN:
                     // Handle other containers
-                    fprintf(stderr, "Not implemented yet: Complex property values\n");
+                    fprintf(stderr,
+			    "        Not implemented yet: Complex property values\n");
                     r = sd_bus_message_skip(m, contents);
                     break;
                 default:
@@ -265,7 +263,7 @@ static int addCharacteristic(BLENativeManager *this, const char *path, sd_bus_me
 
     const DBUSProperty properties[] = {
         { "s", BLUEZ_CHARACT_UUID,    sizeof(BLUEZ_CHARACT_UUID),    &uuid,    },
-        { "s", BLUEZ_CHARACT_SERVICE, sizeof(BLUEZ_CHARACT_SERVICE), &service, },
+        { "o", BLUEZ_CHARACT_SERVICE, sizeof(BLUEZ_CHARACT_SERVICE), &service, },
     };
     const size_t properties_count = sizeof(properties)/sizeof(properties[0]);
 
@@ -276,7 +274,7 @@ static int addCharacteristic(BLENativeManager *this, const char *path, sd_bus_me
     return 1;
 }
 
-static int parseObjectAddDevice(
+static int parseObjectMaybeAdd(
     BLENativeManager *this, sd_bus_message *m)
 {
     int r;
@@ -284,7 +282,7 @@ static int parseObjectAddDevice(
 
     sd_bus_message_read_basic(m, 'o', &path);
 
-    fprintf(stderr, "Object %s\n", path);
+    // fprintf(stderr, "Object %s\n", path);
 
     r = sd_bus_message_enter_container(m, 'a', "{sa{sv}}");
     CHECK_RETURN(r);
@@ -294,7 +292,7 @@ static int parseObjectAddDevice(
             const char *interface;
 
             sd_bus_message_read_basic(m, 's', &interface);
-            fprintf(stderr, "  Interface %s\n", interface);
+            // fprintf(stderr, "  Interface %s\n", interface);
 
             if (!strncmp(BLUEZ_INTERFACE_DEVICE,
                          interface,
@@ -354,7 +352,7 @@ static int getManagedObjectsCallback(
 
     while ((r = sd_bus_message_enter_container(reply, 'e', "oa{sa{sv}}")) > 0) {
 
-        r = parseObjectAddDevice(this, reply);
+        r = parseObjectMaybeAdd(this, reply);
         if (r < 0) {
             return r;
         }
@@ -393,7 +391,7 @@ static int interfaceAddedCallback(
         return -rerr;
     }
 
-    const int r = parseObjectAddDevice(this, reply);
+    const int r = parseObjectMaybeAdd(this, reply);
     if (r < 0) {
         return r;
     }
@@ -506,7 +504,7 @@ static int startDiscoveryCallback(
 
 void BLENativeScanStart(
     BLENativeManager *this, const char *serviceUUID,
-    BLENativeScanDeviceFoundCallback *callback)
+    BLENativeScanDeviceFoundCallback callback)
 {
     sd_bus_message *m = NULL;
 
@@ -670,7 +668,7 @@ void BLENativeLinuxHelper(BLENativeManager *this)
             error? error->name: "");
         sd_bus_message_unref(m);
     } else {
-        fprintf(stderr, "DBUS: no message\n");
+        // fprintf(stderr, "DBUS: no message\n");
     }
 
     if (retval == 0) {
@@ -687,18 +685,15 @@ void BLENativeLinuxHelper(BLENativeManager *this)
 static int characteristicNotifyCallback(
     sd_bus_message *reply, void *userdata, sd_bus_error *error)
 {
+    const char *characteristic_path = userdata;
+
     int r;
-    const char *interface_name;
-    const char *uuid;
-    const char *service;
-    // https://stackoverflow.com/questions/38741928/\
-    //          what-is-the-length-limit-for-ble-characteristics
-    unsigned char value[512 /* XXX */];
+    const char *interface_name = NULL;
+
+    void *value = (void *)0xdeadbeef; // XXX fixme
 
     const DBUSProperty properties[] = {
-        { "s",  BLUEZ_CHARACT_UUID,    sizeof(BLUEZ_CHARACT_UUID),    &uuid,    },
-        { "s",  BLUEZ_CHARACT_SERVICE, sizeof(BLUEZ_CHARACT_SERVICE), &service, },
-        { "ab", BLUEZ_CHARACT_VALUE,   sizeof(BLUEZ_CHARACT_VALUE),   &value    },
+        { "ab", BLUEZ_CHARACT_VALUE, sizeof(BLUEZ_CHARACT_VALUE), &value },
     };
     const size_t properties_count = sizeof(properties)/sizeof(properties[0]);
 
@@ -713,7 +708,12 @@ static int characteristicNotifyCallback(
     r = sd_bus_message_skip(reply, "as");
     CHECK_RETURN(r);
 
-    // XXX;
+    if (value == (void *)0xdeadbeef) // XXX fixme
+	return 1;
+
+    fprintf(stderr, "Unity3D_BLE: %s: interface %s updated: %p\n", __func__, interface_name, value);
+
+    BLENativeNotifyCharacteristic(characteristic_path, value);
 
     return 1;
 }
@@ -740,6 +740,8 @@ void BLENativeSubscribeToCharacteristic(
     int r;
     sd_bus_message *m = NULL;
 
+    fprintf(stderr, "Unity3D_BLE: %s: path=%s\n", __func__, path);
+
     // Subscribe to new notifications
     r = sd_bus_match_signal_async(
         this->bus,
@@ -750,7 +752,7 @@ void BLENativeSubscribeToCharacteristic(
         "PropertiesChanged",
         characteristicNotifyCallback,
         characteristicNotifyInstallCallback,
-        peri);
+        (char *)/*XXX*/path);
     if (r < 0) {
         fprintf(stderr, "Unity3D_BLE: %s: sd_bus_match_signal_async: %d",
                 __func__, r);
