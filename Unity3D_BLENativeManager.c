@@ -167,6 +167,7 @@ static int readProperties(
 
                 switch (type) {
                 case 's':
+		case 'o':
 		    fprintf(stderr, "      %s=%s\n", properties[i].name,
 			    *(char **)properties[i].valuep);
 		    break;
@@ -239,7 +240,7 @@ static int addService(BLENativeManager *this, const char *path, sd_bus_message *
     const char *service;
 
     const DBUSProperty properties[] = {
-        { "s", BLUEZ_SERVICE_DEVICE, sizeof(BLUEZ_SERVICE_DEVICE), &device,  },
+        { "o", BLUEZ_SERVICE_DEVICE, sizeof(BLUEZ_SERVICE_DEVICE), &device,  },
         { "s", BLUEZ_SERVICE_UUID,   sizeof(BLUEZ_SERVICE_UUID),   &service, },
     };
     const size_t properties_count = sizeof(properties)/sizeof(properties[0]);
