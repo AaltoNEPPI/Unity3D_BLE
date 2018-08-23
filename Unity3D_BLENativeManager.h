@@ -81,7 +81,7 @@ void BLENativeInitialise   (BLENativeManager *this, void *cs_context);
 void BLENativeDeInitialise (BLENativeManager *this);
 
 void BLENativeScanStart    (BLENativeManager *this,
-			    char *serviceUUID,
+			    const char *serviceUUID,
 			    BLENativeScanDeviceFoundCallback *callback);
 
 void BLENativeScanStop     (BLENativeManager *this);

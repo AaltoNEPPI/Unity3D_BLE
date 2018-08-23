@@ -505,7 +505,7 @@ static int startDiscoveryCallback(
 */
 
 void BLENativeScanStart(
-    BLENativeManager *this, char *serviceUUID,
+    BLENativeManager *this, const char *serviceUUID,
     BLENativeScanDeviceFoundCallback *callback)
 {
     sd_bus_message *m = NULL;

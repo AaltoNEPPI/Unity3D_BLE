@@ -6,7 +6,10 @@
 
 DIR = Assets/Plugins
 
-TARGET = $(DIR)/libUnity3D_BLE.so
+PLUGIN = $(DIR)/libUnity3D_BLE.so
+TEST   = $(DIR)/test
+
+TARGETS = $(PLUGIN) $(TEST)
 
 OBJS = Unity3D_BLENativeManager.o Unity3D_BLENativePeripheral.o
 
@@ -15,19 +18,26 @@ CFLAGS = -U__APPLE__ -D__linux__
 CFLAGS += -fPIC
 CFLAGS += -Wl,--no-undefined
 CFLAGS += -g
+LIBS = -lsystemd
 
-all:	$(DIR) $(TARGET)
+all:	$(DIR) $(TARGETS)
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -shared $(OBJS) -o $@ -lsystemd
+$(PLUGIN): $(OBJS)
+	$(CC) $(CFLAGS) -shared $(OBJS) -o $@ $(LIBS)
+
+$(TEST): Plugin_Test.o $(PLUGIN)
+	$(CC) $(CFLAGS) -o $@ Plugin_Test.o $(PLUGIN)
 
 $(DIR):
 	mkdir -p $(DIR)
 
+test:	$(TEST)
+	./$(TEST)
+
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(TARGETS) $(OBJS)
 
 # XXX Silly, FIXME
-install: $(TARGET)
-	rm -f ../$(TARGET)
-	cp $(TARGET) ../$(TARGET)
+install: $(TARGETS)
+	rm -f ../$(TARGETS)
+	cp $(TARGETS) ../$(TARGETS)
