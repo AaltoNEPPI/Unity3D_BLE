@@ -6,9 +6,18 @@
 #import <Foundation/Foundation.h> // Needed for CBPeripheral
 
 static void BLENativeLinuxHelper(void *this) {
-    [[NSRunLoop currentRunLoop] run];
+    SInt32    result = CFRunLoopRunInMode(kCFRunLoopDefaultMode, 10, YES);
+    switch (result) {
+    case kCFRunLoopRunStopped:
+    case kCFRunLoopRunFinished:
+        fprintf(stderr, "Stopping run loop\n");
+        exit(0);
+    }
 }
-#endif
+const char serviceUUID[] = "";
+#else
+const char serviceUUID[] = "B131ABDC-7195-142B-E012-0808817F198D";
+#Endif
 
 #undef __APPLE__
 #undef __linux__
@@ -18,8 +27,7 @@ static void BLENativeLinuxHelper(void *this) {
 #include "Unity3D_BLENativePeripheral.h"
 
 const char deviceAddr[]  = "00:7E:6B:5F:95:30";
-const char serviceUUID[] = "b131abdc-7195-142b-e012-0808817f198d";
-const char charactUUID[] = "b131bbd0-7195-142b-e012-0808817f198d";
+const char charactUUID[] = "B131BBD0-7195-142B-E012-0808817F198D";
 
 NativeConnection *connection = NULL;
 

@@ -51,6 +51,18 @@ typedef struct NativePeripheral NativePeripheral;
 #define BLUEZ_CHARACT_SERVICE "Service"
 #define BLUEZ_CHARACT_VALUE   "Value"
 
+void BLENativeLinuxHelper  (BLENativeManager *this); // Only in Linux
+
+#endif
+
+#ifdef __TEST__
+
+typedef void *BLENativeManager;
+typedef void *NativeConnection;
+typedef void *NativeAdvertisementData;
+typedef void NativePeripheral;
+typedef void BLENativePeripheral; // XXX Module violation?
+
 #endif
 
 typedef void (*BLENativeScanDeviceFoundCallback)(
@@ -69,8 +81,6 @@ void BLENativeInitLog(void);
  * is passed back as `this` int he subsequent calls.
  */
 BLENativeManager *BLENativeCreateManager(void);
-
-void BLENativeLinuxHelper  (BLENativeManager *this); // Only in Linux
 
 void BLENativeInitialise   (BLENativeManager *this, void *cs_context);
 void BLENativeDeInitialise (BLENativeManager *this);

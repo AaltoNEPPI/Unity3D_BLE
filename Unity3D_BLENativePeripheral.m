@@ -19,13 +19,17 @@
 - (id)initWith: (CBPeripheral *)cbperipheral
 {
     self = [super init];
-    NSLog(@"BLENativePeripheral init: %@", self);
+    NSLog(@"BLENativePeripheral init: %@ id: %@", self,
+          [[cbperipheral identifier] UUIDString]);
     if (self) {
-        [cbperipheral retain];
         self->cbperipheral = cbperipheral;
+        [cbperipheral retain];
+	self->createCount = 0;
 	self->service = NULL;
 	self->cbservice = NULL;
-	self->characteristics = [[NSMutableArray<CBUUID *> alloc] init];
+        self->characteristics
+            = [NSMutableDictionary dictionaryWithCapacity: 1];
+        [self->characteristics retain];
     }
     return self;
 }
@@ -74,8 +78,9 @@
 	    self->cbservice = cbservice;
 
             if (characteristics) {
-                NSLog(@"Discovering characteristics %@", characteristics);
-		[cbperipheral discoverCharacteristics: characteristics
+                NSArray<CBUUID *> *uuids = [characteristics allKeys];
+                NSLog(@"Discovering characteristics %@", uuids);
+		[cbperipheral discoverCharacteristics: uuids
 					   forService: cbservice];
 	    }
         }
@@ -118,11 +123,12 @@
         NSLog(@"Error discovering characteristics: %@", error);
         return;
     }
-    for (CBCharacteristic *secha in service.characteristics) {
-        for (CBUUID *mychauuid in self->characteristics) {
-            if ([mychauuid isEqual: secha.UUID]) {
-                NSLog(@"Subscribing to characteristic %@", secha);
-		[cbperipheral setNotifyValue: YES forCharacteristic: secha];		            }
+    for (CBCharacteristic *sercha in service.characteristics) {
+        for (CBUUID *mychauuid in [self->characteristics allKeys]) {
+            if ([mychauuid isEqual: sercha.UUID]) {
+                NSLog(@"Subscribing(1) to characteristic %@", sercha);
+		[cbperipheral setNotifyValue: YES forCharacteristic: sercha];
+	    }
         }
     }
 }
@@ -143,8 +149,21 @@ didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
                           error:(NSError *         )error {
 
     NSData *data = characteristic.value;
-    NSLog(@"Characteristic %@ new value %@", characteristic, data);
-    // parse the data as needed
+
+    CBUUID *UUID = [characteristic UUID];
+    NSValue *nscallback = characteristics[UUID];
+    if (nscallback) {
+        const BLENativeCharacteristicUpdatedCallback callback
+           = (BLENativeCharacteristicUpdatedCallback)
+                 [nscallback pointerValue];
+	if (callback) {
+	    const char *uuid = [[UUID UUIDString] UTF8String];
+	    char *uuid2 = strdup(uuid);
+	    //NSLog(@"callback=%p, uuid=%s", callback, uuid2);
+	    callback(uuid2, [data bytes]);
+	    free(uuid2);
+	}
+    }
 }
 
 @end
@@ -156,23 +175,37 @@ didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
 BLENativePeripheral *BLENativeCreatePeripheral(void *cbp)
 {
     CBPeripheral *cbperipheral = (CBPeripheral *)cbp;
-    
+    [cbperipheral retain];
+
     if (cbperipheral.delegate) {
         BLENativePeripheral *this = (BLENativePeripheral *)cbperipheral.delegate;
         [this retain];
+	NSLog(@"BLENativeCreatePeripheral: Already found: %p", this);
+	assert(this->createCount > 0);
+	this->createCount++;
         return this;
     } else {
         BLENativePeripheral *this = [[BLENativePeripheral alloc]
                                         initWith: cbperipheral];
+	assert(this->createCount == 0);
+	this->createCount++;
         cbperipheral.delegate = this;
+	NSLog(@"BLENativeCreatePeripheral: Created: %p", this);
         return this;
     }
 }
 
-void BLENativePeriperalRelease(BLENativePeripheral *this)
+void BLENativePeripheralRelease(BLENativePeripheral *this)
 {
-    this->cbperipheral.delegate = NULL;
-    this->cbperipheral = NULL;
+    NSLog(@"BLENativePeripheralRelease: %p", this);
+    assert(this->cbperipheral.delegate == this || this->cbperipheral.delegate == nil);
+    assert(this->createCount > 0);
+    this->createCount--;
+    if (0 == this->createCount) {
+	assert (this->cbperipheral.delegate);
+	this->cbperipheral.delegate = nil;
+    }
+
     [this release]; // For alloc or retain in BLECreatePeripheral
 }
 
@@ -238,23 +271,37 @@ void BLENativePeripheralSetService(
 }
 
 void BLENativePeripheralAddCharacteristic(
-    BLENativePeripheral *this, const char *chastring)
+    BLENativePeripheral *this,
+    const char *uuidstring,
+    BLENativeCharacteristicUpdatedCallback callback)
 {
-    NSLog(@"Adding to peripheral %@ characteristic: %s", this, chastring);
+    assert(this->characteristics);
 
-    NSString *nscha = [NSString stringWithCString: chastring
+    NSString *nsstring = [NSString stringWithCString: uuidstring
                                          encoding: NSUTF8StringEncoding];
 
-    CBUUID *cha = [CBUUID UUIDWithString: nscha];
-    [this->characteristics addObject: cha];
+    CBUUID *uuid = [CBUUID UUIDWithString: nsstring];
+    if (!uuid) {
+	NSLog(@"Malformed UUID %@", nsstring);
+	return;
+    }
+
+    NSValue *object = [NSValue valueWithPointer: callback];
+    [uuid retain];
+    NSLog(@"Adding characteristic %s to peripheral %@", uuidstring, this);
+    NSLog(@"callback=%p", callback);
+    [this->characteristics setObject: object forKey: uuid];
+    NSLog(@"Checking subscription");
+    [uuid release];
 
     if (NULL != this->cbperipheral && NULL != this->cbservice) {
         if (this->cbperipheral.state == CBPeripheralStateConnected) {
-            NSLog(@"Subscribing peripheral %@ to characteristic %@",
-                  this, cha);
+            NSLog(@"Subscribing(2) peripheral %@ to characteristic %@",
+                  this, uuid);
+            NSArray<CBUUID *> *uuids = [this->characteristics allKeys];
             [this->cbperipheral
-              discoverCharacteristics: this->characteristics
-              forService: this->cbservice];
+                discoverCharacteristics: uuids
+                             forService: this->cbservice];
         }
     }
 }

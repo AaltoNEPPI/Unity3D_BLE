@@ -7,12 +7,30 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		EA5F99AC2131A9F700F6B865 /* Unity3D_BLENativePeripheral.m in Sources */ = {isa = PBXBuildFile; fileRef = EA7A234E2120027A00C101CB /* Unity3D_BLENativePeripheral.m */; };
+		EA5F99AD2131A9F700F6B865 /* Unity3D_BLENativeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */; };
+		EA5F99AE2131A9F700F6B865 /* Plugin_Test.m in Sources */ = {isa = PBXBuildFile; fileRef = EA5F99A92131A39400F6B865 /* Plugin_Test.m */; };
+		EA5F99AF2131AA1F00F6B865 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA69A749211AFA440095FEFA /* CoreBluetooth.framework */; };
 		EA69A747211ADF2A0095FEFA /* Unity3D_BLENativeManager.m in Sources */ = {isa = PBXBuildFile; fileRef = EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */; };
 		EA69A74A211AFA440095FEFA /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EA69A749211AFA440095FEFA /* CoreBluetooth.framework */; };
 		EA7A234F2120027A00C101CB /* Unity3D_BLENativePeripheral.m in Sources */ = {isa = PBXBuildFile; fileRef = EA7A234E2120027A00C101CB /* Unity3D_BLENativePeripheral.m */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		EA5F99A02131A35000F6B865 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		EA5F99A22131A35000F6B865 /* Unity3D_BLE_test */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Unity3D_BLE_test; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA5F99A92131A39400F6B865 /* Plugin_Test.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Plugin_Test.m; sourceTree = SOURCE_ROOT; };
 		EA69A73C211ADE900095FEFA /* Unity3D_BLE.bundle */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Unity3D_BLE.bundle; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA69A73F211ADE900095FEFA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		EA69A745211ADF2A0095FEFA /* Unity3D_BLENativeManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Unity3D_BLENativeManager.h; sourceTree = "<group>"; };
@@ -23,6 +41,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		EA5F999F2131A35000F6B865 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA5F99AF2131AA1F00F6B865 /* CoreBluetooth.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA69A739211ADE900095FEFA /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -42,6 +68,7 @@
 				EA69A745211ADF2A0095FEFA /* Unity3D_BLENativeManager.h */,
 				EA69A746211ADF2A0095FEFA /* Unity3D_BLENativeManager.m */,
 				EA69A73F211ADE900095FEFA /* Info.plist */,
+				EA5F99A92131A39400F6B865 /* Plugin_Test.m */,
 				EA69A73D211ADE900095FEFA /* Products */,
 				EA69A748211AFA430095FEFA /* Frameworks */,
 			);
@@ -51,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				EA69A73C211ADE900095FEFA /* Unity3D_BLE.bundle */,
+				EA5F99A22131A35000F6B865 /* Unity3D_BLE_test */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -66,6 +94,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		EA5F99A12131A35000F6B865 /* Unity3D_BLE_test */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA5F99A82131A35000F6B865 /* Build configuration list for PBXNativeTarget "Unity3D_BLE_test" */;
+			buildPhases = (
+				EA5F999E2131A35000F6B865 /* Sources */,
+				EA5F999F2131A35000F6B865 /* Frameworks */,
+				EA5F99A02131A35000F6B865 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Unity3D_BLE_test;
+			productName = Unity3D_BLE_test;
+			productReference = EA5F99A22131A35000F6B865 /* Unity3D_BLE_test */;
+			productType = "com.apple.product-type.tool";
+		};
 		EA69A73B211ADE900095FEFA /* Unity3D_BLE */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = EA69A742211ADE900095FEFA /* Build configuration list for PBXNativeTarget "Unity3D_BLE" */;
@@ -92,6 +137,9 @@
 				LastUpgradeCheck = 0940;
 				ORGANIZATIONNAME = "Aalto University NEPPI Course";
 				TargetAttributes = {
+					EA5F99A12131A35000F6B865 = {
+						CreatedOnToolsVersion = 9.4.1;
+					};
 					EA69A73B211ADE900095FEFA = {
 						CreatedOnToolsVersion = 9.4.1;
 					};
@@ -110,6 +158,7 @@
 			projectRoot = "";
 			targets = (
 				EA69A73B211ADE900095FEFA /* Unity3D_BLE */,
+				EA5F99A12131A35000F6B865 /* Unity3D_BLE_test */,
 			);
 		};
 /* End PBXProject section */
@@ -125,6 +174,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		EA5F999E2131A35000F6B865 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EA5F99AC2131A9F700F6B865 /* Unity3D_BLENativePeripheral.m in Sources */,
+				EA5F99AD2131A9F700F6B865 /* Unity3D_BLENativeManager.m in Sources */,
+				EA5F99AE2131A9F700F6B865 /* Plugin_Test.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		EA69A738211ADE900095FEFA /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,6 +196,34 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		EA5F99A62131A35000F6B865 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DCRDC96BCR;
+				DSTROOT = "$(PROJECT_DIR)";
+				INSTALL_PATH = /.;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+			};
+			name = Debug;
+		};
+		EA5F99A72131A35000F6B865 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = DCRDC96BCR;
+				DSTROOT = "$(PROJECT_DIR)";
+				INSTALL_PATH = /.;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRIP_INSTALLED_PRODUCT = NO;
+			};
+			name = Release;
+		};
 		EA69A740211ADE900095FEFA /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -293,6 +380,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		EA5F99A82131A35000F6B865 /* Build configuration list for PBXNativeTarget "Unity3D_BLE_test" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA5F99A62131A35000F6B865 /* Debug */,
+				EA5F99A72131A35000F6B865 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		EA69A737211ADE900095FEFA /* Build configuration list for PBXProject "Unity3D_BLE" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

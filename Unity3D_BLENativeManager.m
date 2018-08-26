@@ -138,11 +138,12 @@ void BLENativeDeInitialise(BLENativeManager *this)
 }
 
 void BLENativeScanStart(
-    BLENativeManager *this, char *serviceUUIDstring,
-    BLENativeScanDeviceFoundCallback *callback)
+    BLENativeManager *this,
+    const char *serviceUUIDstring,
+    BLENativeScanDeviceFoundCallback callback)
 {
     this->deviceFoundCallback = callback;
-    NSDictionary *options = @{ CBCentralManagerScanOptionAllowDuplicatesKey: @YES };
+    NSDictionary *options = @{ CBCentralManagerScanOptionAllowDuplicatesKey: @NO };
     NSArray<CBUUID*> *serviceUUIDs = nil;
 
     if ((NULL != serviceUUIDstring) && (0 != strlen(serviceUUIDstring))) {
@@ -168,18 +169,21 @@ void BLENativeScanStop(BLENativeManager *this)
 NativeConnection *BLENativeConnect(
     BLENativeManager *this, BLENativePeripheral *p)
 {
-    NSLog(@"Connecting to peripheral: name=%@", p->cbperipheral.name);
-    [this->cbmanager connectPeripheral: p->cbperipheral options:nil];
     [p retain];
+    NSLog(@"Connecting to peripheral: %p name=%@", p->cbperipheral, p->cbperipheral.name);
+    assert(p->cbperipheral);
+    [this->cbmanager connectPeripheral: p->cbperipheral options:nil];
+    [p tryLocateMyServiceWithDiscovery: NO];
     return p;
 }
 
 void BLENativeDisconnect(BLENativeManager *this, NativeConnection *connection)
 {
     BLENativePeripheral *p = connection; // XXX
-    [p release];
-    NSLog(@"Disconnecting from peripheral: name=%@", p->cbperipheral.name);
+    NSLog(@"Disconnecting from peripheral: %p name=%@", p->cbperipheral, p->cbperipheral.name);
+    assert(p->cbperipheral);
     [this->cbmanager cancelPeripheralConnection: p->cbperipheral];
+    [p release];
 }
 
 void BLENativeDisconnectAll(BLENativeManager *this)

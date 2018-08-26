@@ -17,11 +17,13 @@ typedef void (*BLENativeCharacteristicUpdatedCallback)(const char *uuid, const v
 @interface BLENativePeripheral : NSObject {
 @public
     CBPeripheral *cbperipheral;
+    int createCount;
     BLENativeCharacteristicUpdatedCallback subscribeDataCallback;
     CBUUID *service; // XXX Only one service?
     CBService *cbservice;
-    NSMutableArray<CBUUID *> *characteristics;
+    NSMutableDictionary<CBUUID *, NSValue *> *characteristics;
 }
+- (void)tryLocateMyServiceWithDiscovery: (bool) withDiscovery;
 @end
 
 #endif
@@ -59,6 +61,12 @@ void BLENativePeripheralAddCharacteristicPath(
 
 /* XXX: Fix module boundary violation */
 void BLENativeGetManagedObjects(struct NativeManager *this);
+
+#endif
+
+#ifdef __TEST__
+
+typedef void BLENativePeripheral;
 
 #endif
 
