@@ -23,7 +23,7 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
     if (!this) {
 	this = malloc(sizeof(BLENativePeripheral));
 	assert(this);
-	memset(this, 0, sizeof(this));
+	memset(this, 0, sizeof(*this));
 	/* Redundant... */
 	this->manager = manager;
 	this->path = strdup(path);
