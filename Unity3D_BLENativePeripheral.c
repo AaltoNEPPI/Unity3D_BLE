@@ -38,7 +38,7 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
     }
     assert(this);
     assert(0 == strcmp(this->path, path));
-    assert(0 == strcmp(this->address, address));
+    assert(0 == strcasecmp(this->address, address));
     this->rssi = rssi;
     return this;
 }
@@ -121,7 +121,7 @@ void BLENativePeripheralGetName(BLENativePeripheral *this, char *name, int len)
 void BLENativePeripheralSetService(BLENativePeripheral *this, const char *service)
 {
     if (this->service_uuid) {
-        if (!strcmp(this->service_uuid, service))
+        if (!strcasecmp(this->service_uuid, service))
             return;
         free(this->service_uuid);
         this->service_uuid = NULL;
@@ -148,7 +148,7 @@ void BLENativePeripheralAddServicePath(
 	fprintf(stderr, "AddServicePath: device has no service: %s\n", device_path);
         return;
     }
-    if (0 != strcmp(this->service_uuid, uuid)) {
+    if (0 != strcasecmp(this->service_uuid, uuid)) {
 	fprintf(stderr, "AddServicePath: uuid mismatch: %s\n", this->service_uuid);
         return;
     }
@@ -169,7 +169,7 @@ void BLENativePeripheralAddCharacteristic(
         BLENativeCharacteristic *c = &this->characteristics[i];
         if (NULL == c->uuid)
             continue;
-        if (!strcmp(c->uuid, characteristic))
+        if (!strcasecmp(c->uuid, characteristic))
             return;
     }
     BLENativeCharacteristic *new_c
@@ -213,7 +213,7 @@ void BLENativePeripheralAddCharacteristicPath(
         BLENativeCharacteristic *c = &this->characteristics[i];
 
         assert(NULL != c->uuid);
-        if (0 != strcmp(c->uuid, uuid)) {
+        if (0 != strcasecmp(c->uuid, uuid)) {
 	    fprintf(stderr, "AddCharacteristicPath: mismatch %d %s\n", i, c->uuid);
             continue;
 	}
@@ -221,7 +221,7 @@ void BLENativePeripheralAddCharacteristicPath(
 	fprintf(stderr, "AddChacteristicPath: found %s\n", uuid);
 
         if (NULL != c->path) {
-	    if (0 == strcmp(c->path, path)) {
+	    if (0 == strcasecmp(c->path, path)) {
 		fprintf(stderr, "AddCharacteristicPath: already subscribed %s\n", uuid);
 		return;
 	    }
@@ -263,7 +263,7 @@ void BLENativePeripheralRemoveCharacteristic(
 
         if (NULL == c->uuid)
             continue;
-        if (0 != strcmp(c->uuid, characteristic))
+        if (0 != strcasecmp(c->uuid, characteristic))
             continue;
 
 	assert(c->uuid);

@@ -15,12 +15,13 @@ static void BLENativeLinuxHelper(void *this) {
     }
 }
 const char serviceUUID[] = "";
-#else
-const char serviceUUID[] = "B131ABDC-7195-142B-E012-0808817F198D";
-#Endif
-
 #undef __APPLE__
 #undef __linux__
+#else
+#undef __linux__
+const char serviceUUID[] = "B131ABDC-7195-142B-E012-0808817F198D";
+#endif
+
 #define __TEST__
 
 #include "Unity3D_BLENativeManager.h"
@@ -33,7 +34,7 @@ NativeConnection *connection = NULL;
 
 void notifyCallback(const char *uuid, const void *dp)
 {
-    int v = *(uint8_t *)dp;
+    int v = *(unsigned char *)dp;
     fprintf(stderr, "%s: %s, %d (%p)\n", __func__, uuid, v, dp);
 }
 
