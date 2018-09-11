@@ -21,20 +21,20 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
 
     HASH_FIND_STR(peripherals, path, this);
     if (!this) {
-	this = malloc(sizeof(BLENativePeripheral));
-	assert(this);
-	memset(this, 0, sizeof(*this));
-	/* Redundant... */
-	this->manager = manager;
-	this->path = strdup(path);
-	this->address = strdup(address);
-	this->name = NULL;
-	this->service_uuid = NULL;
-	this->service_path = NULL;
-	this->num_characteristics = 0;
-	this->characteristics = NULL;
-	HASH_ADD_STR(peripherals, path, this);
-	// fprintf(stderr, "Constructing NativePeripheral %p\n", this);
+        this = malloc(sizeof(BLENativePeripheral));
+        assert(this);
+        memset(this, 0, sizeof(*this));
+        /* Redundant... */
+        this->manager = manager;
+        this->path = strdup(path);
+        this->address = strdup(address);
+        this->name = NULL;
+        this->service_uuid = NULL;
+        this->service_path = NULL;
+        this->num_characteristics = 0;
+        this->characteristics = NULL;
+        HASH_ADD_STR(peripherals, path, this);
+        // fprintf(stderr, "Constructing NativePeripheral %p\n", this);
     }
     assert(this);
     assert(0 == strcmp(this->path, path));
@@ -62,7 +62,7 @@ void BLENativePeripheralRelease(BLENativePeripheral *this)
 {
     assert(this);
     if (--(this->references) > 0)
-	return;
+        return;
 
     // fprintf(stderr, "Releasing NativePeripheral %p\n", this);
     HASH_DEL(peripherals, this);
@@ -141,15 +141,15 @@ void BLENativePeripheralAddServicePath(
 
     HASH_FIND_STR(peripherals, device_path, this);
     if (!this) {
-	fprintf(stderr, "AddServicePath: device not found: %s\n", device_path);
+        fprintf(stderr, "AddServicePath: device not found: %s\n", device_path);
         return;
     }
     if (!this->service_uuid) {
-	fprintf(stderr, "AddServicePath: device has no service: %s\n", device_path);
+        fprintf(stderr, "AddServicePath: device has no service: %s\n", device_path);
         return;
     }
     if (0 != strcasecmp(this->service_uuid, uuid)) {
-	fprintf(stderr, "AddServicePath: uuid mismatch: %s\n", this->service_uuid);
+        fprintf(stderr, "AddServicePath: uuid mismatch: %s\n", this->service_uuid);
         return;
     }
 
@@ -207,34 +207,34 @@ void BLENativePeripheralAddCharacteristicPath(
         return;
 
     fprintf(stderr, "AddCharacteristicPath: considering %s, n=%d\n", uuid,
-	this->num_characteristics);
+        this->num_characteristics);
 
     for (int i = 0; i < this->num_characteristics; i++) {
         BLENativeCharacteristic *c = &this->characteristics[i];
 
         assert(NULL != c->uuid);
         if (0 != strcasecmp(c->uuid, uuid)) {
-	    fprintf(stderr, "AddCharacteristicPath: mismatch %d %s\n", i, c->uuid);
+            fprintf(stderr, "AddCharacteristicPath: mismatch %d %s\n", i, c->uuid);
             continue;
-	}
+        }
 
-	fprintf(stderr, "AddChacteristicPath: found %s\n", uuid);
+        fprintf(stderr, "AddChacteristicPath: found %s\n", uuid);
 
         if (NULL != c->path) {
-	    if (0 == strcasecmp(c->path, path)) {
-		fprintf(stderr, "AddCharacteristicPath: already subscribed %s\n", uuid);
-		return;
-	    }
+            if (0 == strcasecmp(c->path, path)) {
+                fprintf(stderr, "AddCharacteristicPath: already subscribed %s\n", uuid);
+                return;
+            }
             free(c->path);
             c->path = NULL;
         }
 
         c->path = strdup(path);
 
-	HASH_ADD_STR(characteristics, path, c);
+        HASH_ADD_STR(characteristics, path, c);
 
-	fprintf(stderr, "AddCharacteristicPath: subscribing to %s\n", uuid);
-	BLENativeSubscribeToCharacteristic(this->manager, c->path, this);
+        fprintf(stderr, "AddCharacteristicPath: subscribing to %s\n", uuid);
+        BLENativeSubscribeToCharacteristic(this->manager, c->path, this);
 
         return;
     }
@@ -251,7 +251,7 @@ void BLENativeNotifyCharacteristic(
     fprintf(stderr, "%s: path=%s, uuid=%s\n", __func__, characteristic_path, c->uuid);
 
     if (c->callback) {
-	c->callback(c->uuid, valuep);
+        c->callback(c->uuid, valuep);
     }
 }
 
@@ -266,14 +266,14 @@ void BLENativePeripheralRemoveCharacteristic(
         if (0 != strcasecmp(c->uuid, characteristic))
             continue;
 
-	assert(c->uuid);
-	free(c->uuid);
+        assert(c->uuid);
+        free(c->uuid);
 
-	if (c->path) {
-	    HASH_DEL(characteristics, c);
-	    free(c->path);
-	    c->path = NULL;
-	}
+        if (c->path) {
+            HASH_DEL(characteristics, c);
+            free(c->path);
+            c->path = NULL;
+        }
 
         // XXX: Is this correct?
         memmove(c+1, c, sizeof(c[0])*(this->num_characteristics - (c - this->characteristics)));

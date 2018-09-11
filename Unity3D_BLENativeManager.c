@@ -65,7 +65,7 @@ static void addPeripheral(
             NULL,
             rssi);
     } else {
-	fprintf(stderr, "NULL deviceFoundCallback for %s\n", address);
+        fprintf(stderr, "NULL deviceFoundCallback for %s\n", address);
     }
 }
 
@@ -130,7 +130,7 @@ static int readProperties(
             r = sd_bus_message_enter_container(m, 'v', contents);
             CHECK_RETURN(r);
 
-	    int i;
+            int i;
             for (i = 0; i < count; i++) {
                 const char type = contents[0];
 
@@ -154,7 +154,7 @@ static int readProperties(
                 case SD_BUS_TYPE_DICT_ENTRY_BEGIN:
                     // Handle other containers
                     fprintf(stderr,
-			    "        Not implemented yet: Complex property values\n");
+                            "        Not implemented yet: Complex property values\n");
                     r = sd_bus_message_skip(m, contents);
                     break;
                 default:
@@ -165,25 +165,25 @@ static int readProperties(
 
                 switch (type) {
                 case 's':
-		case 'o':
-		    fprintf(stderr, "      %s=%s\n", properties[i].name,
-			    *(char **)properties[i].valuep);
-		    break;
+                case 'o':
+                    fprintf(stderr, "      %s=%s\n", properties[i].name,
+                            *(char **)properties[i].valuep);
+                    break;
                 case 'n':
-		    fprintf(stderr, "      %s=%d\n", properties[i].name,
-			    *(int *)properties[i].valuep);
-		    break;
+                    fprintf(stderr, "      %s=%d\n", properties[i].name,
+                            *(int *)properties[i].valuep);
+                    break;
                 default:
-		    fprintf(stderr, "      %s=???\n", properties[i].name);
-		    break;
+                    fprintf(stderr, "      %s=???\n", properties[i].name);
+                    break;
                 }
-		break;
+                break;
             }
-	    /* If the caller is not interested, just skip */
-	    if (count == i) {
-		r = sd_bus_message_skip(m, contents);
-		CHECK_RETURN(r);
-	    }
+            /* If the caller is not interested, just skip */
+            if (count == i) {
+                r = sd_bus_message_skip(m, contents);
+                CHECK_RETURN(r);
+            }
             r = sd_bus_message_exit_container(m); // 'v', contents
             CHECK_RETURN(r);
 
@@ -709,7 +709,7 @@ static int characteristicNotifyCallback(
     CHECK_RETURN(r);
 
     if (value == (void *)0xdeadbeef) // XXX fixme
-	return 1;
+        return 1;
 
     fprintf(stderr, "Unity3D_BLE: %s: interface %s updated: %p\n", __func__, interface_name, value);
 
