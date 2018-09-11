@@ -88,6 +88,13 @@
     }
 }
 
+- (void)     centralManager:(CBCentralManager *)cbmanager
+    didDisconnectPeripheral:(CBPeripheral     *)cbperipheral
+		      error:(NSError          *)error
+{
+    NSLog(@"Disconnected from peripheral: %@: error=%@", cbperipheral, error);
+}
+
 @end
 
 /*
