@@ -31,6 +31,7 @@ BLENativePeripheral *BLENativeCreatePeripheralInternal(
         this->name = NULL;
         this->service_uuid = NULL;
         this->service_path = NULL;
+        this->cs_context = NULL;
         this->num_characteristics = 0;
         this->characteristics = NULL;
         HASH_ADD_STR(peripherals, path, this);
@@ -87,6 +88,7 @@ void BLENativePeripheralRelease(BLENativePeripheral *this)
         free(this->service_path);
         this->service_path = NULL;
     }
+    this->cs_context = NULL;
     if (this->num_characteristics) {
         assert(this->characteristics);
         for (int i = 0; i < this->num_characteristics; i++) {
@@ -118,7 +120,8 @@ void BLENativePeripheralGetName(BLENativePeripheral *this, char *name, int len)
     strncpy(name, this->name? this->name: "", len);
 }
 
-void BLENativePeripheralSetService(BLENativePeripheral *this, const char *service)
+void BLENativePeripheralSetService(
+    BLENativePeripheral *this, const char *service, const void *cs_context)
 {
     if (this->service_uuid) {
         if (!strcasecmp(this->service_uuid, service))
@@ -128,6 +131,8 @@ void BLENativePeripheralSetService(BLENativePeripheral *this, const char *servic
     }
     assert(NULL == this->service_uuid);
     this->service_uuid = strdup(service);
+
+    this->cs_context = cs_context;
 
     if (this->path) {
         BLENativeGetManagedObjects(this->manager); /* XXX Add filter? */
@@ -251,7 +256,7 @@ void BLENativeNotifyCharacteristic(
     fprintf(stderr, "%s: path=%s, uuid=%s\n", __func__, characteristic_path, c->uuid);
 
     if (c->callback) {
-        c->callback(c->uuid, valuep);
+        c->callback(XXX->cs_context, c->uuid, valuep);
     }
 }
 

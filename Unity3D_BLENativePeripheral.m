@@ -24,9 +24,10 @@
     if (self) {
         self->cbperipheral = cbperipheral;
         [cbperipheral retain];
-	self->createCount = 0;
-	self->service = NULL;
-	self->cbservice = NULL;
+        self->createCount = 0;
+        self->service = NULL;
+        self->cs_context = NULL;
+        self->cbservice = NULL;
         self->characteristics
             = [NSMutableDictionary dictionaryWithCapacity: 1];
         [self->characteristics retain];
@@ -45,6 +46,7 @@
        [self->service release];
         self->service = NULL;
     }
+    self->cs_context = NULL;
     if (self->cbservice) {
        [self->cbservice release];
         self->cbservice = NULL;
@@ -60,8 +62,8 @@
 {
     NSLog(@"Trying to locate my service");
     if (NULL == self->cbperipheral) {
-	NSLog(@"No CBPeripheral yet, giving up");
-	return;
+        NSLog(@"No CBPeripheral yet, giving up");
+        return;
     }
     NSArray<CBService *> *services = [self->cbperipheral services];
     for (CBService *cbservice in services) {
@@ -70,29 +72,29 @@
             NSLog(@"Adapting service %@", cbservice);
 
             if (self->cbservice) {
-	       [self->cbservice release];
-	        self->cbservice = NULL;
-	    }
+               [self->cbservice release];
+                self->cbservice = NULL;
+            }
 
-	    [cbservice retain]; // Released in SetService or dealloc
-	    self->cbservice = cbservice;
+            [cbservice retain]; // Released in SetService or dealloc
+            self->cbservice = cbservice;
 
             if (characteristics) {
                 NSArray<CBUUID *> *uuids = [characteristics allKeys];
                 NSLog(@"Discovering characteristics %@", uuids);
-		[cbperipheral discoverCharacteristics: uuids
-					   forService: cbservice];
-	    }
+                [cbperipheral discoverCharacteristics: uuids
+                                           forService: cbservice];
+            }
         }
         return;
     }
 
     if (withDiscovery) {
-	/* Not found, kick a discovery if connected. */
-	if (self->cbperipheral.state == CBPeripheralStateConnected) {
-	    NSLog(@"Discovering %@ for service %@", self, self->service);
-	    [self->cbperipheral discoverServices: @[self->service]];
-	}
+        /* Not found, kick a discovery if connected. */
+        if (self->cbperipheral.state == CBPeripheralStateConnected) {
+            NSLog(@"Discovering %@ for service %@", self, self->service);
+            [self->cbperipheral discoverServices: @[self->service]];
+        }
     }
 }
 
@@ -127,8 +129,8 @@
         for (CBUUID *mychauuid in [self->characteristics allKeys]) {
             if ([mychauuid isEqual: sercha.UUID]) {
                 NSLog(@"Subscribing(1) to characteristic %@", sercha);
-		[cbperipheral setNotifyValue: YES forCharacteristic: sercha];
-	    }
+                [cbperipheral setNotifyValue: YES forCharacteristic: sercha];
+            }
         }
     }
 }
@@ -156,13 +158,13 @@ didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic
         const BLENativeCharacteristicUpdatedCallback callback
            = (BLENativeCharacteristicUpdatedCallback)
                  [nscallback pointerValue];
-	if (callback) {
-	    const char *uuid = [[UUID UUIDString] UTF8String];
-	    char *uuid2 = strdup(uuid);
-	    //NSLog(@"callback=%p, uuid=%s", callback, uuid2);
-	    callback(uuid2, [data bytes]);
-	    free(uuid2);
-	}
+        if (callback) {
+            const char *uuid = [[UUID UUIDString] UTF8String];
+            char *uuid2 = strdup(uuid);
+            NSLog(@"callback=%p, context=%p, uuid=%s", callback, cs_context, uuid2);
+            callback(cs_context, uuid2, [data bytes]);
+            free(uuid2);
+        }
     }
 }
 
@@ -180,17 +182,17 @@ BLENativePeripheral *BLENativeCreatePeripheral(void *cbp)
     if (cbperipheral.delegate) {
         BLENativePeripheral *this = (BLENativePeripheral *)cbperipheral.delegate;
         [this retain];
-	NSLog(@"BLENativeCreatePeripheral: Already found: %p", this);
-	assert(this->createCount > 0);
-	this->createCount++;
+        NSLog(@"BLENativeCreatePeripheral: Already found: %p", this);
+        assert(this->createCount > 0);
+        this->createCount++;
         return this;
     } else {
         BLENativePeripheral *this = [[BLENativePeripheral alloc]
                                         initWith: cbperipheral];
-	assert(this->createCount == 0);
-	this->createCount++;
+        assert(this->createCount == 0);
+        this->createCount++;
         cbperipheral.delegate = this;
-	NSLog(@"BLENativeCreatePeripheral: Created: %p", this);
+        NSLog(@"BLENativeCreatePeripheral: Created: %p", this);
         return this;
     }
 }
@@ -202,8 +204,8 @@ void BLENativePeripheralRelease(BLENativePeripheral *this)
     assert(this->createCount > 0);
     this->createCount--;
     if (0 == this->createCount) {
-	assert (this->cbperipheral.delegate);
-	this->cbperipheral.delegate = nil;
+        assert (this->cbperipheral.delegate);
+        this->cbperipheral.delegate = nil;
     }
 
     [this release]; // For alloc or retain in BLECreatePeripheral
@@ -242,7 +244,7 @@ void BLENativePeripheralGetName(
  *
  */
 void BLENativePeripheralSetService(
-    BLENativePeripheral *this, const char *servicestring)
+    BLENativePeripheral *this, const char *servicestring, const void *cs_context)
 {
     NSLog(@"Configuring peripheral %@ service: %s", this, servicestring);
 
@@ -251,8 +253,8 @@ void BLENativePeripheralSetService(
                            encoding: NSUTF8StringEncoding];
 
     if (this->cbservice) {
-	[this->cbservice release]; // Retained in tryDiscoveryMyServices
-	this->cbservice = NULL;
+        [this->cbservice release]; // Retained in tryDiscoveryMyServices
+        this->cbservice = NULL;
     }
 
     if (this->service) {
@@ -262,6 +264,8 @@ void BLENativePeripheralSetService(
 
     this->service = [CBUUID UUIDWithString: nsservice];
     [this->service retain]; // Released above in if or in dealloc
+
+    this->cs_context = cs_context;
 
     /*
      * If there is already a CoreBluetooth peripheral,
@@ -282,8 +286,8 @@ void BLENativePeripheralAddCharacteristic(
 
     CBUUID *uuid = [CBUUID UUIDWithString: nsstring];
     if (!uuid) {
-	NSLog(@"Malformed UUID %@", nsstring);
-	return;
+        NSLog(@"Malformed UUID %@", nsstring);
+        return;
     }
 
     NSValue *object = [NSValue valueWithPointer: callback];

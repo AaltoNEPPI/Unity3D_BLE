@@ -8,7 +8,10 @@
 #ifndef Unity3D_BLENativePeripheral_h
 #define Unity3D_BLENativePeripheral_h
 
-typedef void (*BLENativeCharacteristicUpdatedCallback)(const char *uuid, const void *data);
+typedef void (*BLENativeCharacteristicUpdatedCallback)(
+    const void *cs_context,
+    const char *uuid,
+    const void *data);
 
 #ifdef __APPLE__
 
@@ -20,6 +23,7 @@ typedef void (*BLENativeCharacteristicUpdatedCallback)(const char *uuid, const v
     int createCount;
     BLENativeCharacteristicUpdatedCallback subscribeDataCallback;
     CBUUID *service; // XXX Only one service?
+    const void *cs_context;
     CBService *cbservice;
     NSMutableDictionary<CBUUID *, NSValue *> *characteristics;
 }
@@ -45,6 +49,7 @@ typedef struct NativePeripheral {
     int rssi;
     char *service_uuid;
     char *service_path;
+    const void *cs_context;
     int num_characteristics;
     BLENativeCharacteristic *characteristics;
     UT_hash_handle hh;
@@ -74,14 +79,16 @@ BLENativePeripheral *BLENativeCreatePeripheral(void *native_peripheral);
 
 void BLENativePeripheralGetIdentifier    (BLENativePeripheral *p, char *identifier, int len);
 void BLENativePeripheralGetName          (BLENativePeripheral *p, char *name, int len);
-void BLENativePeripheralSetService       (BLENativePeripheral *p, const char *service);
+void BLENativePeripheralSetService       (BLENativePeripheral *p,
+					  const char *service,
+					  const void *cs_context);
 
 void BLENativePeripheralAddCharacteristic(BLENativePeripheral *p,
-					  const char *characteristic,
-					  BLENativeCharacteristicUpdatedCallback callback);
+                                          const char *characteristic,
+                                          BLENativeCharacteristicUpdatedCallback callback);
 
 void BLENativePeripheralRemoveCharacteristic(BLENativePeripheral *p,
-					     const char *characteristic);
+                                             const char *characteristic);
 
 void BLENativePeripheralRelease          (BLENativePeripheral *p);
 
