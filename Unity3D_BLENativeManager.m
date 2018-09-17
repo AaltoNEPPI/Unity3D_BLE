@@ -140,6 +140,8 @@ void BLENativeDeInitialise(BLENativeManager *this)
         BLENativeScanStop(this); // Clears deviceFoundCallback
     }
     
+    BLENativeDisconnectAll(this);
+
     // cbmanager released in dealloc 
     [this release]; // For alloc in BLECreateContext
 }
@@ -195,7 +197,12 @@ void BLENativeDisconnect(BLENativeManager *this, NativeConnection *connection)
 
 void BLENativeDisconnectAll(BLENativeManager *this)
 {
-    // XXX TBD
+#if 0
+    // TBD
+    for (CBPeripheral *p in peris) {
+	BLENativeDisconnect(this, p);
+    }
+#endif
 }
 
 #if UNITY_TEST_THREADING
