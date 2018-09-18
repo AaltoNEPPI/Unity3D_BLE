@@ -5,8 +5,8 @@
  *  Placed in public domain.
  */
 
-#import "Unity3D_BLENativeManager.h"
 #import <CoreBluetooth/CoreBluetooth.h>
+#import "Unity3D_BLENativeManager.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -93,6 +93,11 @@
 		      error:(NSError          *)error
 {
     NSLog(@"Disconnected from peripheral: %@: error=%@", cbperipheral, error);
+    BLENativePeripheral *p = cbperipheral.delegate;
+    if (p->cs_connected) {
+	NSLog(@"Attempting to reconnect to peripheral: %@", cbperipheral);
+	[cbmanager connectPeripheral: p->cbperipheral options: nil];
+    }
 }
 
 @end
@@ -181,6 +186,7 @@ NativeConnection *BLENativeConnect(
     [p retain];
     NSLog(@"Connecting to peripheral: %p name=%@", p->cbperipheral, p->cbperipheral.name);
     assert(p->cbperipheral);
+    p->cs_connected = YES;
     [this->cbmanager connectPeripheral: p->cbperipheral options:nil];
     [p tryLocateMyServiceWithDiscovery: NO];
     return p;
@@ -190,6 +196,7 @@ void BLENativeDisconnect(BLENativeManager *this, NativeConnection *connection)
 {
     BLENativePeripheral *p = connection; // XXX
     NSLog(@"Disconnecting from peripheral: %p name=%@", p->cbperipheral, p->cbperipheral.name);
+    p->cs_connected = NO;
     assert(p->cbperipheral);
     [this->cbmanager cancelPeripheralConnection: p->cbperipheral];
     [p release];

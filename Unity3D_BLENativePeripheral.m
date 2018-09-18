@@ -28,6 +28,7 @@
         self->service = NULL;
         self->cs_context = NULL;
         self->cbservice = NULL;
+        self->cs_connected = NO;
         self->characteristics
             = [NSMutableDictionary dictionaryWithCapacity: 1];
         [self->characteristics retain];

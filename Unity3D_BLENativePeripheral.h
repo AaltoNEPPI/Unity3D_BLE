@@ -25,6 +25,7 @@ typedef void (*BLENativeCharacteristicUpdatedCallback)(
     CBUUID *service; // XXX Only one service?
     const void *cs_context;
     CBService *cbservice;
+    BOOL cs_connected;
     NSMutableDictionary<CBUUID *, NSValue *> *characteristics;
 }
 - (void)tryLocateMyServiceWithDiscovery: (bool) withDiscovery;
